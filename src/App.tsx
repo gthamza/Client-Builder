@@ -19,14 +19,16 @@ import Invoices from "./components/pages/Invoices";
 import Chat from "./components/pages/Chat";
 import Settings from "./components/pages/Settings";
 
-import { supabase } from "./lib/supabaseClient";
+import { useSupabaseClient } from "./lib/supabaseClient";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+
   const { handleRedirectCallback } = useSignIn();
   const { user } = useUser();
+  const { getClient } = useSupabaseClient(); // ✅ Clerk-authenticated Supabase
 
   // ✅ Handle OAuth redirect
   useEffect(() => {
@@ -45,12 +47,14 @@ function App() {
     completeOAuth();
   }, [handleRedirectCallback]);
 
-  // ✅ Insert Clerk user into Supabase if not already exists
+  // ✅ Sync Clerk user to Supabase
   useEffect(() => {
     const insertUserToSupabase = async () => {
       if (!user) return;
 
-      const clerkId = user.id?.trim();
+      const supabase = await getClient();
+
+      const clerkId = user.id.trim();
       const name = user.firstName || "";
       const email = user.primaryEmailAddress?.emailAddress || "";
 
@@ -77,9 +81,9 @@ function App() {
     };
 
     insertUserToSupabase();
-  }, [user]);
+  }, [user, getClient]);
 
-  // ✅ Render current page based on sidebar state
+  // ✅ Render current page based on sidebar
   const renderCurrentPage = () => {
     switch (currentPage) {
       case "dashboard":

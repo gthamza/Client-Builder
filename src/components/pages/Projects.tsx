@@ -1,50 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, MoreHorizontal, X } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
+import { useSupabaseClient } from "../../lib/supabaseClient";
 
 const Projects = () => {
+  const { user } = useUser();
+  const { getClient } = useSupabaseClient();
+
   const [showModal, setShowModal] = useState(false);
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      name: "Website Redesign",
-      client: "Acme Corp",
-      status: "In Progress",
-      lastUpdated: "2024-01-15",
-      progress: 75,
-    },
-    {
-      id: 2,
-      name: "Mobile App Development",
-      client: "Tech Startup",
-      status: "In Progress",
-      lastUpdated: "2024-01-14",
-      progress: 45,
-    },
-    {
-      id: 3,
-      name: "Brand Identity",
-      client: "Global Industries",
-      status: "Completed",
-      lastUpdated: "2024-01-12",
-      progress: 100,
-    },
-    {
-      id: 4,
-      name: "E-commerce Platform",
-      client: "Retail Plus",
-      status: "Not Started",
-      lastUpdated: "2024-01-10",
-      progress: 0,
-    },
-    {
-      id: 5,
-      name: "Marketing Website",
-      client: "Digital Agency",
-      status: "In Progress",
-      lastUpdated: "2024-01-09",
-      progress: 30,
-    },
-  ]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [newProjectId, setNewProjectId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     client: "",
@@ -59,7 +24,6 @@ const Projects = () => {
       case "In Progress":
         return "bg-blue-100 text-blue-800";
       case "Not Started":
-        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -75,19 +39,51 @@ const Projects = () => {
     }));
   };
 
-  const handleAddProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProjects([
-      ...projects,
-      {
-        id: projects.length + 1,
-        ...form,
-        lastUpdated: new Date().toISOString().slice(0, 10),
-      },
-    ]);
-    setForm({ name: "", client: "", status: "Not Started", progress: 0 });
-    setShowModal(false);
+  const fetchProjects = async () => {
+    if (!user) return;
+    const supabase = await getClient();
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("clerk_id", user.id)
+      .order("last_updated", { ascending: false });
+
+    if (error) {
+      console.error("Fetch error:", error.message);
+    } else {
+      setProjects(data || []);
+    }
   };
+
+  const handleAddProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const supabase = await getClient();
+    const newProject = {
+      ...form,
+      clerk_id: user?.id,
+      last_updated: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert(newProject)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Insert error:", error.message);
+    } else {
+      setProjects((prev) => [data, ...prev]);
+      setNewProjectId(data.id);
+      setForm({ name: "", client: "", status: "Not Started", progress: 0 });
+      setShowModal(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [user]);
 
   return (
     <div className="space-y-6">
@@ -107,7 +103,6 @@ const Projects = () => {
         </button>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
@@ -214,7 +209,13 @@ const Projects = () => {
               {projects.map((project) => (
                 <tr key={project.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div
+                      className={`text-sm font-medium ${
+                        newProjectId === project.id
+                          ? "text-green-600"
+                          : "text-gray-900"
+                      }`}
+                    >
                       {project.name}
                     </div>
                   </td>
@@ -246,7 +247,7 @@ const Projects = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.lastUpdated}
+                    {new Date(project.last_updated).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button className="text-gray-400 hover:text-gray-600">
