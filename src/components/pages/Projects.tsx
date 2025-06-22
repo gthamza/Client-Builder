@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, MoreHorizontal, X } from "lucide-react";
+import { Plus, MoreHorizontal, X, Edit, Trash2 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useSupabaseClient } from "../../lib/supabaseClient";
 
@@ -16,6 +16,8 @@ const Projects = () => {
     status: "Not Started",
     progress: 0,
   });
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [editProject, setEditProject] = useState<any | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -81,6 +83,61 @@ const Projects = () => {
     }
   };
 
+  const handleEditClick = (project: any) => {
+    setEditProject(project);
+    setForm({
+      name: project.name,
+      client: project.client,
+      status: project.status,
+      progress: project.progress,
+    });
+    setShowModal(true);
+    setMenuOpenId(null);
+  };
+
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editProject) return;
+    const supabase = await getClient();
+    const updatedProject = {
+      ...form,
+      last_updated: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from("projects")
+      .update(updatedProject)
+      .eq("id", editProject.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Update error:", error.message);
+    } else {
+      setProjects((prev) =>
+        prev.map((p) => (p.id === editProject.id ? data : p))
+      );
+      setEditProject(null);
+      setForm({ name: "", client: "", status: "Not Started", progress: 0 });
+      setShowModal(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!window.confirm("Are you sure you want to delete this project?"))
+      return;
+    const supabase = await getClient();
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", projectId);
+    if (error) {
+      console.error("Delete error:", error.message);
+    } else {
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      setMenuOpenId(null);
+    }
+  };
+
   useEffect(() => {
     fetchProjects();
   }, [user]);
@@ -96,7 +153,16 @@ const Projects = () => {
         </div>
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setShowModal(true);
+            setEditProject(null);
+            setForm({
+              name: "",
+              client: "",
+              status: "Not Started",
+              progress: 0,
+            });
+          }}
         >
           <Plus className="w-4 h-4" />
           <span>New Project</span>
@@ -108,12 +174,26 @@ const Projects = () => {
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
             <button
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-              onClick={() => setShowModal(false)}
+              onClick={() => {
+                setShowModal(false);
+                setEditProject(null);
+                setForm({
+                  name: "",
+                  client: "",
+                  status: "Not Started",
+                  progress: 0,
+                });
+              }}
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-bold mb-4">Add New Project</h2>
-            <form onSubmit={handleAddProject} className="space-y-4">
+            <h2 className="text-lg font-bold mb-4">
+              {editProject ? "Edit Project" : "Add New Project"}
+            </h2>
+            <form
+              onSubmit={editProject ? handleUpdateProject : handleAddProject}
+              className="space-y-4"
+            >
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Project Name
@@ -173,7 +253,7 @@ const Projects = () => {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold"
               >
-                Add Project
+                {editProject ? "Update Project" : "Add Project"}
               </button>
             </form>
           </div>
@@ -200,7 +280,7 @@ const Projects = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Updated
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -208,23 +288,13 @@ const Projects = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {projects.map((project) => (
                 <tr key={project.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div
-                      className={`text-sm font-medium ${
-                        newProjectId === project.id
-                          ? "text-green-600"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {project.name}
-                    </div>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    {project.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {project.client}
-                    </div>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {project.client}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
                         project.status
@@ -233,7 +303,7 @@ const Projects = () => {
                       {project.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                         <div
@@ -246,13 +316,41 @@ const Projects = () => {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-gray-500">
                     {new Date(project.last_updated).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
+                  <td className="px-6 py-4 text-sm font-medium relative">
+                    <div className="flex items-center justify-center h-full relative">
+                      <button
+                        className="text-gray-400 hover:text-gray-600"
+                        onClick={() =>
+                          setMenuOpenId(
+                            menuOpenId === project.id ? null : project.id
+                          )
+                        }
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+
+                      {menuOpenId === project.id && (
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white border rounded shadow-lg z-50 flex gap-1 px-2 py-2">
+                          <button
+                            title="Edit"
+                            className="p-2 rounded hover:bg-gray-100 text-gray-700"
+                            onClick={() => handleEditClick(project)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            title="Delete"
+                            className="p-2 rounded hover:bg-gray-100 text-red-600"
+                            onClick={() => handleDeleteProject(project.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
