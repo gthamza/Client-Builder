@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Plus,
-  MoreHorizontal,
-  Download,
-  Eye,
-  X,
-  Trash2,
-  Pencil,
-} from "lucide-react";
+import { Plus, Download, X, Trash2, Pencil } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useSupabaseClient } from "../../lib/supabaseClient";
 
@@ -27,6 +19,7 @@ const Invoices = () => {
   });
   const [editId, setEditId] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Helper to parse currency string to number
   const parseAmount = (amount: string) =>
@@ -40,7 +33,7 @@ const Invoices = () => {
       .from("invoices")
       .select("*")
       .eq("clerk_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("id", { ascending: true });
     if (error) {
       console.error("Fetch error:", error.message);
     } else {
@@ -66,15 +59,17 @@ const Invoices = () => {
     .filter((inv) => inv.status === "Pending" || inv.status === "Overdue")
     .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
 
-  const paidThisMonth = invoices
-    .filter(
-      (inv) =>
-        inv.status === "Paid" &&
-        inv.paidDate &&
-        inv.paidDate.startsWith("2024-01")
-    )
-    .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
+    const now = new Date();
+    const thisMonth = now.toISOString().slice(0, 7); // e.g. "2025-06"
 
+    const paidThisMonth = invoices
+      .filter(
+        (inv) =>
+          inv.status === "Paid" &&
+          inv.paidDate &&
+          inv.paidDate.slice(0, 7) === thisMonth
+      )
+      .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
   const overdue = invoices
     .filter((inv) => inv.status === "Overdue")
     .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
@@ -192,17 +187,23 @@ const Invoices = () => {
     fetchInvoices();
   };
 
-  // Delete invoice
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this invoice?")) return;
+  // Delete invoice (open modal)
+  const handleDelete = (id: string) => {
+    setDeleteId(id);
+  };
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     const supabase = await getClient();
     const { error } = await supabase
       .from("invoices")
       .delete()
-      .eq("id", id)
+      .eq("id", deleteId)
       .eq("clerk_id", user.id);
     if (error) alert("Delete error: " + error.message);
     else fetchInvoices();
+    setDeleteId(null);
   };
 
   // Edit invoice
@@ -247,6 +248,34 @@ const Invoices = () => {
           <span>Create Invoice</span>
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+            <h2 className="text-lg font-bold mb-4 text-center text-red-600">
+              Delete Invoice
+            </h2>
+            <p className="mb-6 text-center text-gray-700">
+              Are you sure you want to delete this invoice? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                onClick={() => setDeleteId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -460,9 +489,6 @@ const Invoices = () => {
                       </button>
                       <button className="text-gray-600 hover:text-gray-800">
                         <Download className="w-4 h-4" />
-                      </button>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <MoreHorizontal className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

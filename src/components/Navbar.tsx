@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Settings, LogOut, ChevronDown } from "lucide-react";
 import { UserButton, useUser, useClerk } from "@clerk/clerk-react";
-
+import logo from "../public/Images/logo.jpg";
 interface NavbarProps {
   onSignOut?: () => void;
   setCurrentPage: (page: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onSignOut, setCurrentPage }) => {
+const Navbar: React.FC<NavbarProps> = ({ setCurrentPage }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -15,13 +15,12 @@ const Navbar: React.FC<NavbarProps> = ({ onSignOut, setCurrentPage }) => {
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* 🔁 Clickable logo */}
         <div
           className="flex items-center space-x-2 cursor-pointer hover:opacity-80"
           onClick={() => setCurrentPage("dashboard")}
         >
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">CP</span>
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden">
+            <img src={logo} alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900">Client Portal</h1>
         </div>

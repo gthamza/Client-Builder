@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, MoreHorizontal, X, Edit, Trash2 } from "lucide-react";
+import { Plus, X, Edit, Trash2 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useSupabaseClient } from "../../lib/supabaseClient";
 
@@ -16,8 +16,8 @@ const Projects = () => {
     status: "Not Started",
     progress: 0,
   });
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [editProject, setEditProject] = useState<any | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -35,10 +35,41 @@ const Projects = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "progress" ? Number(value) : value,
-    }));
+
+    setForm((prev) => {
+      let updated = { ...prev, [name]: value };
+
+      if (name === "status") {
+        // When user sets status
+        if (value === "Completed") {
+          updated.progress = 100;
+        } else if (value === "Not Started" && Number(prev.progress) > 0) {
+          // Don't allow Not Started if progress already exists
+          updated.status = "In Progress";
+        }
+        return updated;
+      }
+
+      if (name === "progress") {
+        const progressValue = Number(value);
+        updated.progress = progressValue;
+
+        if (progressValue === 0) {
+          updated.status = "Not Started";
+        } else if (progressValue === 100) {
+          updated.status = "Completed";
+        } else {
+          // Any progress between 1–99 should be "In Progress"
+          if (prev.status === "Completed" || prev.status === "Not Started") {
+            updated.status = "In Progress";
+          }
+        }
+
+        return updated;
+      }
+
+      return updated;
+    });
   };
 
   const fetchProjects = async () => {
@@ -92,7 +123,6 @@ const Projects = () => {
       progress: project.progress,
     });
     setShowModal(true);
-    setMenuOpenId(null);
   };
 
   const handleUpdateProject = async (e: React.FormEvent) => {
@@ -122,24 +152,28 @@ const Projects = () => {
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm("Are you sure you want to delete this project?"))
-      return;
+  const handleDeleteProject = (projectId: string) => {
+    setDeleteId(projectId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     const supabase = await getClient();
     const { error } = await supabase
       .from("projects")
       .delete()
-      .eq("id", projectId);
+      .eq("id", deleteId);
     if (error) {
-      console.error("Delete error:", error.message);
+      alert("Delete error: " + error.message);
     } else {
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
-      setMenuOpenId(null);
+      setProjects((prev) => prev.filter((p) => p.id !== deleteId));
     }
+    setDeleteId(null);
   };
 
   useEffect(() => {
     fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (
@@ -168,6 +202,35 @@ const Projects = () => {
           <span>New Project</span>
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+            <h2 className="text-lg font-bold mb-4 text-center text-red-600">
+              Delete Project
+            </h2>
+            <p className="mb-6 text-center text-gray-700">
+              Are you sure you want to delete this project? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                onClick={() => setDeleteId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
@@ -319,37 +382,22 @@ const Projects = () => {
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {new Date(project.last_updated).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium relative">
-                    <div className="flex items-center justify-center h-full relative">
+                  <td className="px-6 py-4 text-sm font-medium">
+                    <div className="flex items-center justify-center gap-2">
                       <button
-                        className="text-gray-400 hover:text-gray-600"
-                        onClick={() =>
-                          setMenuOpenId(
-                            menuOpenId === project.id ? null : project.id
-                          )
-                        }
+                        title="Edit"
+                        className="p-2 rounded hover:bg-gray-100 text-blue-600"
+                        onClick={() => handleEditClick(project)}
                       >
-                        <MoreHorizontal className="w-5 h-5" />
+                        <Edit className="w-4 h-4" />
                       </button>
-
-                      {menuOpenId === project.id && (
-                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white border rounded shadow-lg z-50 flex gap-1 px-2 py-2">
-                          <button
-                            title="Edit"
-                            className="p-2 rounded hover:bg-gray-100 text-gray-700"
-                            onClick={() => handleEditClick(project)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            title="Delete"
-                            className="p-2 rounded hover:bg-gray-100 text-red-600"
-                            onClick={() => handleDeleteProject(project.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        title="Delete"
+                        className="p-2 rounded hover:bg-gray-100 text-red-600"
+                        onClick={() => handleDeleteProject(project.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>

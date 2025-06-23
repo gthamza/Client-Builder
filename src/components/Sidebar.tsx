@@ -1,15 +1,15 @@
-import React from 'react';
-import { 
-  LayoutDashboard, 
-  FolderOpen, 
-  Users, 
-  FileText, 
-  Receipt, 
+import React from "react";
+import {
+  LayoutDashboard,
+  FolderOpen,
+  Users,
+  FileText,
+  Receipt,
   MessageCircle,
   Settings,
   ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+  ChevronRight,
+} from "lucide-react";
 
 interface SidebarProps {
   currentPage: string;
@@ -18,21 +18,28 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, collapsed, setCollapsed }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  currentPage,
+  setCurrentPage,
+  collapsed,
+  setCollapsed,
+}) => {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'projects', label: 'Projects', icon: FolderOpen },
-    { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'files', label: 'Files', icon: FileText },
-    { id: 'invoices', label: 'Invoices', icon: Receipt },
-    { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "projects", label: "Projects", icon: FolderOpen },
+    { id: "clients", label: "Clients", icon: Users },
+    { id: "files", label: "Files", icon: FileText },
+    { id: "invoices", label: "Invoices", icon: Receipt },
+    { id: "chat", label: "Chat", icon: MessageCircle },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
-    <div className={`fixed left-0 top-16 h-full bg-white shadow-sm border-r border-gray-200 transition-all duration-300 ${
-      collapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div
+      className={`fixed left-0 top-17 h-full bg-white shadow-sm border-r border-gray-200 transition-all duration-300 ${
+        collapsed ? "w-16" : "w-64"
+      }`}
+    >
       <div className="p-4">
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -45,20 +52,20 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, collapse
           )}
         </button>
       </div>
-      
+
       <nav className="px-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
-          
+
           return (
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                  : "text-gray-700 hover:bg-gray-100"
               }`}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
