@@ -4,9 +4,10 @@ import { UserButton, useUser, useClerk } from "@clerk/clerk-react";
 
 interface NavbarProps {
   onSignOut?: () => void;
+  setCurrentPage: (page: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = () => {
+const Navbar: React.FC<NavbarProps> = ({ onSignOut, setCurrentPage }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -14,7 +15,11 @@ const Navbar: React.FC<NavbarProps> = () => {
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        {/* 🔁 Clickable logo */}
+        <div
+          className="flex items-center space-x-2 cursor-pointer hover:opacity-80"
+          onClick={() => setCurrentPage("dashboard")}
+        >
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">CP</span>
           </div>
@@ -40,7 +45,7 @@ const Navbar: React.FC<NavbarProps> = () => {
               <button
                 onClick={() => {
                   setDropdownOpen(false);
-                  // Optionally navigate to settings
+                  setCurrentPage("settings");
                 }}
                 className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
               >
@@ -51,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = () => {
                 onClick={async () => {
                   setDropdownOpen(false);
                   await signOut();
-                  window.location.replace("/"); // Ensures full reload and no back navigation
+                  window.location.replace("/"); // Full page reload
                 }}
                 className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
               >

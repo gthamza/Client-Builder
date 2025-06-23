@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Plus, MoreHorizontal, Download, Eye, X } from "lucide-react";
+import {
+  Plus,
+  MoreHorizontal,
+  Download,
+  Eye,
+  X,
+  Trash2,
+  Pencil,
+} from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useSupabaseClient } from "../../lib/supabaseClient";
 
@@ -10,7 +18,6 @@ const Invoices = () => {
   const [showModal, setShowModal] = useState(false);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [form, setForm] = useState({
-    id: "",
     client: "",
     amount: "",
     status: "Draft",
@@ -18,6 +25,8 @@ const Invoices = () => {
     issueDate: "",
     paidDate: "",
   });
+  const [editId, setEditId] = useState("");
+  const [editMode, setEditMode] = useState(false);
 
   // Helper to parse currency string to number
   const parseAmount = (amount: string) =>
@@ -97,16 +106,67 @@ const Invoices = () => {
     }));
   };
 
-  // Add invoice to Supabase
-  const handleAddInvoice = async (e: React.FormEvent) => {
+  // Add or update invoice in Supabase
+  const handleAddOrUpdateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     const supabase = await getClient();
 
-    // Insert invoice
+    if (editMode) {
+      // Update existing invoice
+      const { error } = await supabase
+        .from("invoices")
+        .update({
+          client: form.client,
+          amount: parseAmount(form.amount),
+          status: form.status,
+          issue_date: form.issueDate,
+          due_date: form.dueDate,
+          paid_date: form.status === "Paid" ? form.paidDate : null,
+        })
+        .eq("id", editId)
+        .eq("clerk_id", user.id);
+
+      if (error) {
+        alert("Update error: " + error.message);
+        return;
+      }
+
+      setEditMode(false);
+      setEditId("");
+      setShowModal(false);
+      setForm({
+        client: "",
+        amount: "",
+        status: "Draft",
+        dueDate: "",
+        issueDate: "",
+        paidDate: "",
+      });
+      fetchInvoices();
+      return;
+    }
+
+    // Generate next invoice ID
+    const { data: lastInvoice } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("clerk_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    let nextNumber = 1;
+    if (lastInvoice?.id) {
+      const match = lastInvoice.id.match(/INV-(\d+)/);
+      if (match) nextNumber = parseInt(match[1]) + 1;
+    }
+    const generatedId = `INV-${String(nextNumber).padStart(3, "0")}`;
+
+    // Insert new invoice
     const { error } = await supabase.from("invoices").insert([
       {
-        id: form.id,
+        id: generatedId,
         client: form.client,
         amount: parseAmount(form.amount),
         status: form.status,
@@ -121,7 +181,6 @@ const Invoices = () => {
       return;
     }
     setForm({
-      id: "",
       client: "",
       amount: "",
       status: "Draft",
@@ -133,6 +192,34 @@ const Invoices = () => {
     fetchInvoices();
   };
 
+  // Delete invoice
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this invoice?")) return;
+    const supabase = await getClient();
+    const { error } = await supabase
+      .from("invoices")
+      .delete()
+      .eq("id", id)
+      .eq("clerk_id", user.id);
+    if (error) alert("Delete error: " + error.message);
+    else fetchInvoices();
+  };
+
+  // Edit invoice
+  const handleEdit = (invoice: any) => {
+    setForm({
+      client: invoice.client,
+      amount: invoice.amount.replace(/[^0-9.]/g, ""),
+      status: invoice.status,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      paidDate: invoice.paidDate || "",
+    });
+    setEditId(invoice.id);
+    setEditMode(true);
+    setShowModal(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -142,7 +229,19 @@ const Invoices = () => {
         </div>
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setShowModal(true);
+            setEditMode(false);
+            setEditId("");
+            setForm({
+              client: "",
+              amount: "",
+              status: "Draft",
+              dueDate: "",
+              issueDate: "",
+              paidDate: "",
+            });
+          }}
         >
           <Plus className="w-4 h-4" />
           <span>Create Invoice</span>
@@ -159,21 +258,11 @@ const Invoices = () => {
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-bold mb-4">Create Invoice</h2>
-            <form onSubmit={handleAddInvoice} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Invoice ID
-                </label>
-                <input
-                  type="text"
-                  name="id"
-                  value={form.id}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-              </div>
+            <h2 className="text-lg font-bold mb-4">
+              {editMode ? "Edit Invoice" : "Create Invoice"}
+            </h2>
+            <form onSubmit={handleAddOrUpdateInvoice} className="space-y-4">
+              {/* Invoice ID is auto-generated, so not shown in form */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Client
@@ -261,7 +350,7 @@ const Invoices = () => {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold"
               >
-                Create Invoice
+                {editMode ? "Update Invoice" : "Create Invoice"}
               </button>
             </form>
           </div>
@@ -357,8 +446,17 @@ const Invoices = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800">
-                        <Eye className="w-4 h-4" />
+                      <button
+                        onClick={() => handleEdit(invoice)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(invoice.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                       <button className="text-gray-600 hover:text-gray-800">
                         <Download className="w-4 h-4" />

@@ -129,7 +129,10 @@ function App() {
 
       <SignedIn>
         <div className="min-h-screen bg-gray-50">
-          <Navbar onSignOut={() => window.location.reload()} />
+          <Navbar
+            onSignOut={() => window.location.reload()}
+            setCurrentPage={setCurrentPage}
+          />
           <div className="flex">
             <Sidebar
               currentPage={currentPage}
