@@ -1,64 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, MoreHorizontal, Download, Eye, X } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
+import { useSupabaseClient } from "../../lib/supabaseClient";
 
 const Invoices = () => {
+  const { user } = useUser();
+  const { getClient } = useSupabaseClient();
+
   const [showModal, setShowModal] = useState(false);
-  const [invoices, setInvoices] = useState([
-    {
-      id: "INV-001",
-      client: "Acme Corp",
-      amount: "$5,500",
-      status: "Paid",
-      dueDate: "2024-01-15",
-      issueDate: "2024-01-01",
-      paidDate: "2024-01-10",
-    },
-    {
-      id: "INV-002",
-      client: "Tech Startup",
-      amount: "$3,200",
-      status: "Pending",
-      dueDate: "2024-01-20",
-      issueDate: "2024-01-05",
-      paidDate: null,
-    },
-    {
-      id: "INV-003",
-      client: "Global Industries",
-      amount: "$7,800",
-      status: "Overdue",
-      dueDate: "2024-01-10",
-      issueDate: "2023-12-27",
-      paidDate: null,
-    },
-    {
-      id: "INV-004",
-      client: "Retail Plus",
-      amount: "$4,150",
-      status: "Pending",
-      dueDate: "2024-01-25",
-      issueDate: "2024-01-10",
-      paidDate: null,
-    },
-    {
-      id: "INV-005",
-      client: "Digital Agency",
-      amount: "$2,900",
-      status: "Paid",
-      dueDate: "2024-01-18",
-      issueDate: "2024-01-03",
-      paidDate: "2024-01-15",
-    },
-    {
-      id: "INV-006",
-      client: "Acme Corp",
-      amount: "$6,400",
-      status: "Draft",
-      dueDate: "2024-01-30",
-      issueDate: "2024-01-15",
-      paidDate: null,
-    },
-  ]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [form, setForm] = useState({
     id: "",
     client: "",
@@ -72,6 +22,35 @@ const Invoices = () => {
   // Helper to parse currency string to number
   const parseAmount = (amount: string) =>
     Number(amount.replace(/[^0-9.-]+/g, ""));
+
+  // Fetch invoices from Supabase
+  const fetchInvoices = async () => {
+    if (!user) return;
+    const supabase = await getClient();
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("clerk_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Fetch error:", error.message);
+    } else {
+      setInvoices(
+        (data || []).map((inv: any) => ({
+          ...inv,
+          amount: `$${Number(inv.amount).toLocaleString()}`,
+          dueDate: inv.due_date,
+          issueDate: inv.issue_date,
+          paidDate: inv.paid_date,
+        }))
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Calculations
   const totalOutstanding = invoices
@@ -118,15 +97,29 @@ const Invoices = () => {
     }));
   };
 
-  const handleAddInvoice = (e: React.FormEvent) => {
+  // Add invoice to Supabase
+  const handleAddInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
-    setInvoices([
+    if (!user) return;
+    const supabase = await getClient();
+
+    // Insert invoice
+    const { error } = await supabase.from("invoices").insert([
       {
-        ...form,
-        paidDate: form.status === "Paid" ? form.paidDate : null,
+        id: form.id,
+        client: form.client,
+        amount: parseAmount(form.amount),
+        status: form.status,
+        issue_date: form.issueDate,
+        due_date: form.dueDate,
+        paid_date: form.status === "Paid" ? form.paidDate : null,
+        clerk_id: user.id,
       },
-      ...invoices,
     ]);
+    if (error) {
+      alert("Error adding invoice: " + error.message);
+      return;
+    }
     setForm({
       id: "",
       client: "",
@@ -137,6 +130,7 @@ const Invoices = () => {
       paidDate: "",
     });
     setShowModal(false);
+    fetchInvoices();
   };
 
   return (
