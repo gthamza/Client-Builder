@@ -1,8 +1,12 @@
-import React, { useState } from "react";
-import { Plus, X, Mail, Phone, MoreHorizontal } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, X, Mail, Phone, Edit, Trash2 } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
+import { supabase } from "../../lib/supabaseClient"; // adjust path if needed
 
 const Clients = () => {
   const [showModal, setShowModal] = useState(false);
+  const { user } = useUser();
+
   type Client = {
     id: number;
     name: string;
@@ -11,6 +15,7 @@ const Clients = () => {
     projects: number;
     totalValue: string;
     status: string;
+    clerk_id?: string;
   };
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -23,6 +28,22 @@ const Clients = () => {
     totalValue: "",
     status: "Active",
   });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Fetch clients from Supabase
+  useEffect(() => {
+    const fetchClients = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("clerk_id", user.id)
+        .order("id", { ascending: true });
+      if (!error && data) setClients(data);
+    };
+    fetchClients();
+  }, [user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -47,15 +68,65 @@ const Clients = () => {
     }
   };
 
-  const handleAddClient = (e: React.FormEvent) => {
+  const handleAddOrUpdateClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    setClients([
-      ...clients,
-      {
-        ...form,
-        id: clients.length + 1,
-      },
-    ]);
+
+    if (!user) {
+      alert("You must be logged in to add a client.");
+      return;
+    }
+
+    const newClient = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      projects: form.projects,
+      totalValue: form.totalValue,
+      status: form.status,
+      clerk_id: user.id,
+    };
+
+    if (editId !== null) {
+      // Update
+      const { error } = await supabase
+        .from("clients")
+        .update(newClient)
+        .eq("id", editId);
+
+      if (error) {
+        alert("Error updating client: " + error.message);
+        return;
+      }
+
+      setClients((prev) =>
+        prev.map((c) =>
+          c.id === editId ? { ...form, id: editId, clerk_id: user.id } : c
+        )
+      );
+      setEditId(null);
+    } else {
+      // Add
+      const { data, error } = await supabase
+        .from("clients")
+        .insert([newClient])
+        .select()
+        .single();
+
+      if (error) {
+        alert("Error adding client: " + error.message);
+        return;
+      }
+
+      setClients([
+        ...clients,
+        {
+          ...form,
+          id: data?.id || clients.length + 1,
+          clerk_id: user.id,
+        },
+      ]);
+    }
+
     setForm({
       id: 0,
       name: "",
@@ -65,7 +136,32 @@ const Clients = () => {
       totalValue: "",
       status: "Active",
     });
+
     setShowModal(false);
+  };
+
+  const handleEdit = (client: Client) => {
+    setForm(client);
+    setEditId(client.id);
+    setShowModal(true);
+  };
+
+  const handleDelete = (id: number) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId === null) return;
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", deleteId);
+    if (error) {
+      alert("Error deleting client: " + error.message);
+    } else {
+      setClients((prev) => prev.filter((c) => c.id !== deleteId));
+    }
+    setDeleteId(null);
   };
 
   return (
@@ -77,7 +173,19 @@ const Clients = () => {
           <p className="text-gray-600">Manage your clients</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setShowModal(true);
+            setEditId(null);
+            setForm({
+              id: 0,
+              name: "",
+              email: "",
+              phone: "",
+              projects: 0,
+              totalValue: "",
+              status: "Active",
+            });
+          }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
         >
           <Plus size={16} /> Add Client
@@ -104,7 +212,7 @@ const Clients = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500">
                 Actions
               </th>
             </tr>
@@ -134,10 +242,23 @@ const Clients = () => {
                     {client.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <MoreHorizontal size={16} />
-                  </button>
+                <td className="px-6 py-4 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      title="Edit"
+                      className="p-2 rounded hover:bg-gray-100 text-blue-600"
+                      onClick={() => handleEdit(client)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      title="Delete"
+                      className="p-2 rounded hover:bg-gray-100 text-red-600"
+                      onClick={() => handleDelete(client.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -152,6 +273,35 @@ const Clients = () => {
         </table>
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {deleteId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+            <h2 className="text-lg font-bold mb-4 text-center text-red-600">
+              Delete Client
+            </h2>
+            <p className="mb-6 text-center text-gray-700">
+              Are you sure you want to delete this client? This action cannot be
+              undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                onClick={() => setDeleteId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
@@ -162,8 +312,10 @@ const Clients = () => {
             >
               <X size={20} />
             </button>
-            <h2 className="text-lg font-bold mb-4">Add New Client</h2>
-            <form onSubmit={handleAddClient} className="space-y-4">
+            <h2 className="text-lg font-bold mb-4">
+              {editId !== null ? "Edit Client" : "Add New Client"}
+            </h2>
+            <form onSubmit={handleAddOrUpdateClient} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Client Name
@@ -248,7 +400,7 @@ const Clients = () => {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold"
               >
-                Add Client
+                {editId !== null ? "Update Client" : "Add Client"}
               </button>
             </form>
           </div>

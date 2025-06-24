@@ -1,14 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Download, X, Trash2, Pencil } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useSupabaseClient } from "../../lib/supabaseClient";
-
+import html2pdf from "html2pdf.js";
+import logo from "../../public/Images/logo.jpg"; // Adjust the path as necessary
 const Invoices = () => {
   const { user } = useUser();
   const { getClient } = useSupabaseClient();
 
   const [showModal, setShowModal] = useState(false);
-  const [invoices, setInvoices] = useState<any[]>([]);
+  interface Invoice {
+    id: string;
+    client: string;
+    amount: string;
+    status: string;
+    issueDate: string;
+    dueDate: string;
+    paidDate?: string;
+    [key: string]: unknown; // For any additional fields from Supabase
+  }
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [form, setForm] = useState({
     client: "",
     amount: "",
@@ -20,6 +31,7 @@ const Invoices = () => {
   const [editId, setEditId] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const pdfRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Helper to parse currency string to number
   const parseAmount = (amount: string) =>
@@ -59,17 +71,18 @@ const Invoices = () => {
     .filter((inv) => inv.status === "Pending" || inv.status === "Overdue")
     .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
 
-    const now = new Date();
-    const thisMonth = now.toISOString().slice(0, 7); // e.g. "2025-06"
+  const now = new Date();
+  const thisMonth = now.toISOString().slice(0, 7); // e.g. "2025-06"
 
-    const paidThisMonth = invoices
-      .filter(
-        (inv) =>
-          inv.status === "Paid" &&
-          inv.paidDate &&
-          inv.paidDate.slice(0, 7) === thisMonth
-      )
-      .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
+  const paidThisMonth = invoices
+    .filter(
+      (inv) =>
+        inv.status === "Paid" &&
+        inv.paidDate &&
+        inv.paidDate.slice(0, 7) === thisMonth
+    )
+    .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
+
   const overdue = invoices
     .filter((inv) => inv.status === "Overdue")
     .reduce((sum, inv) => sum + parseAmount(inv.amount), 0);
@@ -194,7 +207,7 @@ const Invoices = () => {
 
   // Confirm delete
   const confirmDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteId || !user) return;
     const supabase = await getClient();
     const { error } = await supabase
       .from("invoices")
@@ -207,7 +220,17 @@ const Invoices = () => {
   };
 
   // Edit invoice
-  const handleEdit = (invoice: any) => {
+  interface Invoice {
+    id: string;
+    client: string;
+    amount: string;
+    status: string;
+    issueDate: string;
+    dueDate: string;
+    paidDate?: string;
+  }
+
+  const handleEdit = (invoice: Invoice) => {
     setForm({
       client: invoice.client,
       amount: invoice.amount.replace(/[^0-9.]/g, ""),
@@ -219,6 +242,21 @@ const Invoices = () => {
     setEditId(invoice.id);
     setEditMode(true);
     setShowModal(true);
+  };
+
+  // Download invoice as PDF using html2pdf.js
+  const handleDownloadPDF = (invoiceId: string) => {
+    const element = pdfRefs.current[invoiceId];
+    if (!element) return;
+    html2pdf()
+      .set({
+        margin: 0.5,
+        filename: `${invoiceId}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      })
+      .from(element)
+      .save();
   };
 
   return (
@@ -257,7 +295,8 @@ const Invoices = () => {
               Delete Invoice
             </h2>
             <p className="mb-6 text-center text-gray-700">
-              Are you sure you want to delete this invoice? This action cannot be undone.
+              Are you sure you want to delete this invoice? This action cannot
+              be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -386,6 +425,114 @@ const Invoices = () => {
         </div>
       )}
 
+      {/* Hidden PDF templates */}
+      <div style={{ display: "none" }}>
+        {invoices.map((invoice) => (
+          <div
+            key={`pdf-${invoice.id}`}
+            ref={(el) => (pdfRefs.current[invoice.id] = el)}
+          >
+            <div
+              style={{
+                fontFamily: "Arial, sans-serif",
+                padding: 40,
+                width: 600,
+                background: "#fff",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 20,
+                }}
+              >
+                <img src={logo} alt="Logo" style={{ height: 60 }} />
+                <div style={{ textAlign: "right" }}>
+                  <h2 style={{ margin: 0 }}>INVOICE</h2>
+                  <small>{new Date().toLocaleDateString()}</small>
+                </div>
+              </div>
+              <hr style={{ margin: "20px 0" }} />
+              <div style={{ marginBottom: 20 }}>
+                <p>
+                  <strong>Invoice ID:</strong> {invoice.id}
+                </p>
+                <p>
+                  <strong>Client:</strong> {invoice.client}
+                </p>
+                <p>
+                  <strong>Status:</strong> {invoice.status}
+                </p>
+                <p>
+                  <strong>Issue Date:</strong> {invoice.issueDate}
+                </p>
+                <p>
+                  <strong>Due Date:</strong> {invoice.dueDate}
+                </p>
+                {invoice.paidDate && (
+                  <p>
+                    <strong>Paid Date:</strong> {invoice.paidDate}
+                  </p>
+                )}
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        borderBottom: "1px solid #ddd",
+                        paddingBottom: 5,
+                      }}
+                    >
+                      Description
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "right",
+                        borderBottom: "1px solid #ddd",
+                        paddingBottom: 5,
+                      }}
+                    >
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: "8px 0" }}>
+                      Invoice for {invoice.client}
+                    </td>
+                    <td style={{ textAlign: "right" }}>{invoice.amount}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td style={{ textAlign: "right", paddingTop: 10 }}>
+                      <strong>Total:</strong>
+                    </td>
+                    <td style={{ textAlign: "right", paddingTop: 10 }}>
+                      <strong>{invoice.amount}</strong>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+              <div
+                style={{
+                  marginTop: 40,
+                  fontSize: 12,
+                  textAlign: "center",
+                }}
+              >
+                <p>Thank you for your business!</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -487,7 +634,11 @@ const Invoices = () => {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-800">
+                      <button
+                        className="text-gray-600 hover:text-gray-800"
+                        onClick={() => handleDownloadPDF(invoice.id)}
+                        title="Download PDF"
+                      >
                         <Download className="w-4 h-4" />
                       </button>
                     </div>
@@ -501,5 +652,4 @@ const Invoices = () => {
     </div>
   );
 };
-
 export default Invoices;
