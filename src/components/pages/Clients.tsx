@@ -58,13 +58,13 @@ const Clients = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Active":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "Completed":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "Inactive":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
     }
   };
 
@@ -165,12 +165,12 @@ const Clients = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-white text-black dark:bg-gray-900 dark:text-white min-h-screen transition-colors">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Clients</h1>
-          <p className="text-gray-600">Manage your clients</p>
+          <p className="text-gray-600 dark:text-gray-300">Manage your clients</p>
         </div>
         <button
           onClick={() => {
@@ -193,37 +193,37 @@ const Clients = () => {
       </div>
 
       {/* Client Table */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-200">
+      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300">
                 Client Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300">
                 Contact Info
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300">
                 Projects
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300">
                 Total Value
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300">
                 Status
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {clients.map((client) => (
-              <tr key={client.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">
+              <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
                   {client.name}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
+                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                   <div className="flex items-center gap-2">
                     <Mail size={14} /> {client.email}
                   </div>
@@ -246,14 +246,14 @@ const Clients = () => {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       title="Edit"
-                      className="p-2 rounded hover:bg-gray-100 text-blue-600"
+                      className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400"
                       onClick={() => handleEdit(client)}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       title="Delete"
-                      className="p-2 rounded hover:bg-gray-100 text-red-600"
+                      className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400"
                       onClick={() => handleDelete(client.id)}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -264,7 +264,7 @@ const Clients = () => {
             ))}
             {clients.length === 0 && (
               <tr>
-                <td className="px-6 py-4 text-gray-500" colSpan={6}>
+                <td className="px-6 py-4 text-gray-500 dark:text-gray-400" colSpan={6}>
                   No clients added yet.
                 </td>
               </tr>
@@ -276,23 +276,23 @@ const Clients = () => {
       {/* Delete Confirmation Modal */}
       {deleteId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
-            <h2 className="text-lg font-bold mb-4 text-center text-red-600">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+            <h2 className="text-lg font-bold mb-4 text-center text-red-600 dark:text-red-400">
               Delete Client
             </h2>
-            <p className="mb-6 text-center text-gray-700">
+            <p className="mb-6 text-center text-gray-700 dark:text-gray-300">
               Are you sure you want to delete this client? This action cannot be
               undone.
             </p>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                className="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                 onClick={() => setDeleteId(null)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                className="px-4 py-2 rounded bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800"
                 onClick={confirmDelete}
               >
                 Delete
@@ -305,19 +305,19 @@ const Clients = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md relative">
             <button
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               onClick={() => setShowModal(false)}
             >
               <X size={20} />
             </button>
-            <h2 className="text-lg font-bold mb-4">
+            <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">
               {editId !== null ? "Edit Client" : "Add New Client"}
             </h2>
             <form onSubmit={handleAddOrUpdateClient} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Client Name
                 </label>
                 <input
@@ -326,11 +326,11 @@ const Clients = () => {
                   required
                   value={form.name}
                   onChange={handleInputChange}
-                  className="w-full mt-1 border rounded-md px-3 py-2"
+                  className="w-full mt-1 border rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white border-gray-300 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Email
                 </label>
                 <input
@@ -339,11 +339,11 @@ const Clients = () => {
                   required
                   value={form.email}
                   onChange={handleInputChange}
-                  className="w-full mt-1 border rounded-md px-3 py-2"
+                  className="w-full mt-1 border rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white border-gray-300 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Phone
                 </label>
                 <input
@@ -352,11 +352,11 @@ const Clients = () => {
                   required
                   value={form.phone}
                   onChange={handleInputChange}
-                  className="w-full mt-1 border rounded-md px-3 py-2"
+                  className="w-full mt-1 border rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white border-gray-300 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Projects
                 </label>
                 <input
@@ -365,11 +365,11 @@ const Clients = () => {
                   value={form.projects}
                   onChange={handleInputChange}
                   min={0}
-                  className="w-full mt-1 border rounded-md px-3 py-2"
+                  className="w-full mt-1 border rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white border-gray-300 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Total Value
                 </label>
                 <input
@@ -378,18 +378,18 @@ const Clients = () => {
                   required
                   value={form.totalValue}
                   onChange={handleInputChange}
-                  className="w-full mt-1 border rounded-md px-3 py-2"
+                  className="w-full mt-1 border rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white border-gray-300 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Status
                 </label>
                 <select
                   name="status"
                   value={form.status}
                   onChange={handleInputChange}
-                  className="w-full mt-1 border rounded-md px-3 py-2"
+                  className="w-full mt-1 border rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white border-gray-300 dark:border-gray-700"
                 >
                   <option value="Active">Active</option>
                   <option value="Completed">Completed</option>

@@ -22,12 +22,12 @@ const Projects = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Completed":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "In Progress":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "Not Started":
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
     }
   };
 
@@ -40,11 +40,9 @@ const Projects = () => {
       let updated = { ...prev, [name]: value };
 
       if (name === "status") {
-        // When user sets status
         if (value === "Completed") {
           updated.progress = 100;
         } else if (value === "Not Started" && Number(prev.progress) > 0) {
-          // Don't allow Not Started if progress already exists
           updated.status = "In Progress";
         }
         return updated;
@@ -59,7 +57,6 @@ const Projects = () => {
         } else if (progressValue === 100) {
           updated.status = "Completed";
         } else {
-          // Any progress between 1–99 should be "In Progress"
           if (prev.status === "Completed" || prev.status === "Not Started") {
             updated.status = "In Progress";
           }
@@ -177,11 +174,11 @@ const Projects = () => {
   }, [user]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white text-black dark:bg-gray-900 dark:text-white min-h-screen transition-colors">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
+          <p className="text-gray-600 dark:text-gray-300">
             Manage your client projects and track progress
           </p>
         </div>
@@ -206,23 +203,23 @@ const Projects = () => {
       {/* Delete Confirmation Modal */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
-            <h2 className="text-lg font-bold mb-4 text-center text-red-600">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+            <h2 className="text-lg font-bold mb-4 text-center text-red-600 dark:text-red-400">
               Delete Project
             </h2>
-            <p className="mb-6 text-center text-gray-700">
+            <p className="mb-6 text-center text-gray-700 dark:text-gray-300">
               Are you sure you want to delete this project? This action cannot
               be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                className="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                 onClick={() => setDeleteId(null)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                className="px-4 py-2 rounded bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800"
                 onClick={confirmDelete}
               >
                 Delete
@@ -234,9 +231,9 @@ const Projects = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md relative">
             <button
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               onClick={() => {
                 setShowModal(false);
                 setEditProject(null);
@@ -250,7 +247,7 @@ const Projects = () => {
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-bold mb-4">
+            <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">
               {editProject ? "Edit Project" : "Add New Project"}
             </h2>
             <form
@@ -258,7 +255,7 @@ const Projects = () => {
               className="space-y-4"
             >
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Project Name
                 </label>
                 <input
@@ -267,11 +264,11 @@ const Projects = () => {
                   value={form.name}
                   onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Client
                 </label>
                 <input
@@ -280,18 +277,18 @@ const Projects = () => {
                   value={form.client}
                   onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Status
                 </label>
                 <select
                   name="status"
                   value={form.status}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 >
                   <option value="Not Started">Not Started</option>
                   <option value="In Progress">In Progress</option>
@@ -299,7 +296,7 @@ const Projects = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Progress (%)
                 </label>
                 <input
@@ -309,7 +306,7 @@ const Projects = () => {
                   min={0}
                   max={100}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
               </div>
               <button
@@ -323,38 +320,38 @@ const Projects = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Project Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Client
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Progress
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Last Updated
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
               {projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                <tr key={project.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                     {project.name}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">
                     {project.client}
                   </td>
                   <td className="px-6 py-4">
@@ -368,32 +365,32 @@ const Projects = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                      <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full"
                           style={{ width: `${project.progress}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
                         {project.progress}%
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {new Date(project.last_updated).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         title="Edit"
-                        className="p-2 rounded hover:bg-gray-100 text-blue-600"
+                        className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400"
                         onClick={() => handleEditClick(project)}
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         title="Delete"
-                        className="p-2 rounded hover:bg-gray-100 text-red-600"
+                        className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400"
                         onClick={() => handleDeleteProject(project.id)}
                       >
                         <Trash2 className="w-4 h-4" />

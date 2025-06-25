@@ -95,11 +95,13 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="flex h-[calc(100vh-8rem)] bg-white text-black dark:bg-gray-900 dark:text-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
       {/* Client List Sidebar */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Messages</h2>
+      <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 transition-colors">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            Messages
+          </h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -107,7 +109,7 @@ const Chat = () => {
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900 text-black dark:text-white"
             />
           </div>
         </div>
@@ -117,17 +119,17 @@ const Chat = () => {
             <div
               key={client.id}
               onClick={() => setSelectedClient(client.id)}
-              className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${
+              className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 transition-colors ${
                 selectedClient === client.id
-                  ? "bg-blue-50 border-r-2 border-r-blue-500"
+                  ? "bg-blue-50 dark:bg-blue-900 border-r-2 border-r-blue-500 dark:border-r-blue-400"
                   : ""
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-700">
+                    <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                         {client.name
                           .split(" ")
                           .map((n) => n[0])
@@ -135,14 +137,16 @@ const Chat = () => {
                       </span>
                     </div>
                     {client.online && (
-                      <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                      <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-gray-900 truncate">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {client.name}
                     </h3>
-                    <p className="text-xs text-gray-500">{client.timestamp}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300">
+                      {client.timestamp}
+                    </p>
                   </div>
                 </div>
                 {client.unread > 0 && (
@@ -151,7 +155,7 @@ const Chat = () => {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 truncate">
+              <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                 {client.lastMessage}
               </p>
             </div>
@@ -160,13 +164,13 @@ const Chat = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 transition-colors">
         {/* Chat Header */}
-        <div className="p-4 border-b border-gray-200 bg-white">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-gray-700">
+              <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                   {selectedClientData?.name
                     .split(" ")
                     .map((n) => n[0])
@@ -174,22 +178,22 @@ const Chat = () => {
                 </span>
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {selectedClientData?.name}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-300">
                   {selectedClientData?.online ? "Online" : "Offline"}
                 </p>
               </div>
             </div>
-            <button className="text-gray-400 hover:text-gray-600">
+            <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
               <MoreHorizontal className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-gray-900 transition-colors">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -201,13 +205,15 @@ const Chat = () => {
                 className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                   msg.sender === "me"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-900"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 }`}
               >
                 <p className="text-sm">{msg.content}</p>
                 <p
                   className={`text-xs mt-1 ${
-                    msg.sender === "me" ? "text-blue-100" : "text-gray-500"
+                    msg.sender === "me"
+                      ? "text-blue-100"
+                      : "text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {msg.timestamp}
@@ -218,14 +224,14 @@ const Chat = () => {
         </div>
 
         {/* Message Input */}
-        <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="flex items-center space-x-3">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900 text-black dark:text-white"
               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
             />
             <button
@@ -241,4 +247,4 @@ const Chat = () => {
   );
 };
 
-export default Chat;
+export default Chat;       

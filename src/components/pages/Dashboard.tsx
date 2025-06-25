@@ -7,195 +7,95 @@ const clients = [
   { id: 1, name: "Acme Corp", createdAt: "2024-06-01" },
   { id: 2, name: "Tech Startup", createdAt: "2024-06-10" },
   { id: 3, name: "Global Industries", createdAt: "2024-05-15" },
-  // ...add more as needed
 ];
 
 const projects = [
-  {
-    id: 1,
-    name: "Website Redesign",
-    status: "Active",
-    startedAt: "2024-06-12",
-  },
-  { id: 2, name: "Mobile App", status: "Active", startedAt: "2024-06-10" },
-  {
-    id: 3,
-    name: "Brand Identity",
-    status: "Completed",
-    startedAt: "2024-05-01",
-  },
-  // ...add more as needed
+  { id: 1, name: "Website Redesign", status: "Active" },
+  { id: 2, name: "Mobile App", status: "Completed" },
+  { id: 3, name: "Branding", status: "Active" },
 ];
 
 const invoices = [
-  {
-    id: "INV-001",
-    amount: 5500,
-    status: "Pending",
-    dueDate: "2024-06-20",
-    paid: false,
-    overdue: false,
-  },
-  {
-    id: "INV-002",
-    amount: 3200,
-    status: "Overdue",
-    dueDate: "2024-06-10",
-    paid: false,
-    overdue: true,
-  },
-  {
-    id: "INV-003",
-    amount: 2450,
-    status: "Paid",
-    dueDate: "2024-06-05",
-    paid: true,
-    paidDate: "2024-06-06",
-  },
-  {
-    id: "INV-004",
-    amount: 1300,
-    status: "Pending",
-    dueDate: "2024-06-25",
-    paid: false,
-    overdue: false,
-  },
-  // ...add more as needed
+  { id: 1, client: "Acme Corp", amount: 1200, status: "Paid" },
+  { id: 2, client: "Tech Startup", amount: 800, status: "Pending" },
+  { id: 3, client: "Global Industries", amount: 1500, status: "Overdue" },
 ];
 
-const payments = [
-  { id: 1, amount: 2450, date: "2024-06-06" },
-  { id: 2, amount: 1800, date: "2024-06-01" },
-  // ...add more as needed
+const recentActivity = [
+  {
+    type: "invoice",
+    action: "Invoice #INV-003 marked as Overdue",
+    time: "2 hours ago",
+  },
+  {
+    type: "file",
+    action: "New file uploaded for Tech Startup",
+    time: "5 hours ago",
+  },
+  {
+    type: "client",
+    action: "Added new client: Tech Startup",
+    time: "1 day ago",
+  },
+  {
+    type: "payment",
+    action: "Payment received from Acme Corp",
+    time: "2 days ago",
+  },
 ];
 
 const Dashboard = () => {
-  // Calculate summary values
-  const {
-    totalClients,
-    newClientsThisMonth,
-    activeProjects,
-    newProjectsThisWeek,
-    pendingInvoices,
-    overdueInvoices,
-    monthlyRevenue,
-    revenueChange,
-  } = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-
-    // Clients
-    const totalClients = clients.length;
-    const newClientsThisMonth = clients.filter(
-      (c) => new Date(c.createdAt) >= startOfMonth
-    ).length;
-
-    // Projects
-    const activeProjects = projects.filter((p) => p.status === "Active").length;
-    const newProjectsThisWeek = projects.filter(
-      (p) => new Date(p.startedAt) >= startOfWeek
-    ).length;
-
-    // Invoices
-    const pendingInvoices = invoices.filter((i) => i.status === "Pending");
-    const overdueInvoices = invoices.filter((i) => i.status === "Overdue");
-    const pendingInvoicesAmount = pendingInvoices.reduce(
-      (sum, i) => sum + i.amount,
-      0
-    );
-    const overdueInvoicesCount = overdueInvoices.length;
-
-    // Revenue
-    const thisMonth = now.toISOString().slice(0, 7);
-    const monthlyRevenue = payments
-      .filter((p) => p.date.startsWith(thisMonth))
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    // For demo, fake a revenue change
-    const revenueChange = "+12% from last month";
-
-    return {
-      totalClients,
-      newClientsThisMonth,
-      activeProjects,
-      newProjectsThisWeek,
-      pendingInvoices: `$${pendingInvoicesAmount.toLocaleString()}`,
-      overdueInvoices: `${overdueInvoicesCount} overdue`,
-      pendingInvoicesAmount,
-      overdueInvoicesCount,
-      monthlyRevenue: `$${monthlyRevenue.toLocaleString()}`,
-      revenueChange,
-    };
-  }, []);
-
-  const summaryCards = [
-    {
-      title: "Total Clients",
-      value: totalClients,
-      change: `+${newClientsThisMonth} this month`,
-      icon: Users,
-      color: "bg-blue-500",
-    },
-    {
-      title: "Active Projects",
-      value: activeProjects,
-      change: `+${newProjectsThisWeek} this week`,
-      icon: FolderOpen,
-      color: "bg-green-500",
-    },
-    {
-      title: "Pending Invoices",
-      value: pendingInvoices,
-      change: overdueInvoices,
-      icon: Receipt,
-      color: "bg-yellow-500",
-    },
-    {
-      title: "Monthly Revenue",
-      value: monthlyRevenue,
-      change: revenueChange,
-      icon: TrendingUp,
-      color: "bg-purple-500",
-    },
-  ];
-
-  const recentActivity = [
-    {
-      action: "Invoice #1234 sent to Acme Corp",
-      time: "2 hours ago",
-      type: "invoice",
-    },
-    {
-      action: "Project files uploaded by Sarah Wilson",
-      time: "4 hours ago",
-      type: "file",
-    },
-    {
-      action: 'New client "Tech Startup" added',
-      time: "1 day ago",
-      type: "client",
-    },
-    {
-      action: "Payment received from Global Industries",
-      time: "2 days ago",
-      type: "payment",
-    },
-    {
-      action: 'Project "Website Redesign" completed',
-      time: "3 days ago",
-      type: "project",
-    },
-  ];
   const { user } = useUser();
+
+  // Calculations for summary cards
+  const totalClients = clients.length;
+  const activeProjects = projects.filter((p) => p.status === "Active").length;
+  const totalInvoices = invoices.length;
+  const totalRevenue = invoices
+    .filter((inv) => inv.status === "Paid")
+    .reduce((sum, inv) => sum + inv.amount, 0);
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        title: "Total Clients",
+        value: totalClients,
+        icon: Users,
+        color: "bg-blue-500",
+        change: "+2 this month",
+      },
+      {
+        title: "Active Projects",
+        value: activeProjects,
+        icon: FolderOpen,
+        color: "bg-green-500",
+        change: "+1 this week",
+      },
+      {
+        title: "Total Invoices",
+        value: totalInvoices,
+        icon: Receipt,
+        color: "bg-purple-500",
+        change: "+3 this month",
+      },
+      {
+        title: "Revenue (Paid)",
+        value: `$${totalRevenue.toLocaleString()}`,
+        icon: TrendingUp,
+        color: "bg-yellow-500",
+        change: "+$1,200 this month",
+      },
+    ],
+    [totalClients, activeProjects, totalInvoices, totalRevenue]
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white text-black dark:bg-gray-900 dark:text-white min-h-screen transition-colors">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           Welcome back, {user?.firstName || user?.username || "Guest"}!
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           Here's what's happening with your business today.
         </p>
       </div>
@@ -207,7 +107,7 @@ const Dashboard = () => {
           return (
             <div
               key={index}
-              className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-2 rounded-lg ${card.color}`}>
@@ -215,13 +115,15 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                   {card.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
                   {card.value}
                 </p>
-                <p className="text-sm text-gray-500">{card.change}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {card.change}
+                </p>
               </div>
             </div>
           );
@@ -229,9 +131,9 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Recent Activity
           </h2>
         </div>
@@ -253,8 +155,12 @@ const Dashboard = () => {
                   }`}
                 />
                 <div className="flex-1">
-                  <p className="text-sm text-gray-900">{activity.action}</p>
-                  <p className="text-xs text-gray-500">{activity.time}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {activity.action}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {activity.time}
+                  </p>
                 </div>
               </div>
             ))}

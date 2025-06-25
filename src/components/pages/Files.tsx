@@ -102,11 +102,15 @@ const Files = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white text-black dark:bg-gray-900 dark:text-white min-h-screen transition-colors">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Files</h1>
-          <p className="text-gray-600">Upload and organize project files</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Files
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Upload and organize project files
+          </p>
         </div>
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
@@ -119,17 +123,19 @@ const Files = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md relative">
             <button
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               onClick={() => setShowModal(false)}
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-semibold mb-4">Upload New File</h2>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              Upload New File
+            </h2>
             <form onSubmit={handleAddFile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Select File
                 </label>
                 <input
@@ -137,17 +143,17 @@ const Files = () => {
                   accept=".pdf,image/*"
                   onChange={handleFileSelect}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
                 {form.name && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
                     {form.name} – {form.size}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Uploaded By
                 </label>
                 <input
@@ -156,12 +162,12 @@ const Files = () => {
                   value={form.uploadedBy}
                   onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Client
                 </label>
                 <input
@@ -170,12 +176,12 @@ const Files = () => {
                   value={form.client}
                   onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Date
                 </label>
                 <input
@@ -184,7 +190,7 @@ const Files = () => {
                   value={form.uploadedAt}
                   onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-900 text-black dark:text-white"
                 />
               </div>
 
@@ -208,50 +214,54 @@ const Files = () => {
       {/* File Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {files.length === 0 ? (
-          <p className="text-gray-500">No files uploaded yet.</p>
+          <p className="text-gray-500 dark:text-gray-400">
+            No files uploaded yet.
+          </p>
         ) : (
           files.map((file) => (
             <div
               key={file.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   {getFileIcon(file.type)}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-gray-900 truncate">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {file.name}
                     </h3>
-                    <p className="text-xs text-gray-500">{file.size}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300">
+                      {file.size}
+                    </p>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
+                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="space-y-2 text-xs text-gray-500">
+              <div className="space-y-2 text-xs text-gray-500 dark:text-gray-300">
                 <div className="flex justify-between">
                   <span>Client</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-gray-900 dark:text-white">
                     {file.client}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Uploaded by</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-gray-900 dark:text-white">
                     {file.uploadedBy}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Date</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-gray-900 dark:text-white">
                     {file.uploadedAt}
                   </span>
                 </div>
               </div>
 
-              <button className="mt-4 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 px-3 rounded-lg flex items-center justify-center space-x-2">
+              <button className="mt-4 w-full bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-3 rounded-lg flex items-center justify-center space-x-2">
                 <Download className="w-4 h-4" />
                 <span className="text-sm">Download</span>
               </button>

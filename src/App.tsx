@@ -26,6 +26,9 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
+  // Dark mode state
+  const [dark, setDark] = useState(false);
+
   const { handleRedirectCallback } = useSignIn();
   const { user } = useUser();
   const { getClient } = useSupabaseClient(); // ✅ Clerk-authenticated Supabase
@@ -83,6 +86,28 @@ function App() {
     insertUserToSupabase();
   }, [user, getClient]);
 
+  // Dark mode: load from localStorage and update <html> class
+  useEffect(() => {
+    const theme = localStorage.getItem("theme");
+    if (theme === "dark") {
+      setDark(true);
+      document.documentElement.classList.add("dark");
+    } else {
+      setDark(false);
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [dark]);
+
   // ✅ Render current page based on sidebar
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -128,10 +153,12 @@ function App() {
       </SignedOut>
 
       <SignedIn>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
           <Navbar
             onSignOut={() => window.location.reload()}
             setCurrentPage={setCurrentPage}
+            dark={dark}
+            setDark={setDark}
           />
           <div className="flex">
             <Sidebar
