@@ -1,28 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { User, Bell, Shield, CreditCard, Globe, Save } from "lucide-react";
 
-const Settings = () => {
+interface SettingsProps {
+  dark: boolean;
+  setDark: (val: boolean) => void;
+}
+
+const Settings = ({ dark, setDark }: SettingsProps) => {
   const [activeTab, setActiveTab] = useState("profile");
-  const [darkMode, setDarkMode] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
-
-  // Sync dark mode with global theme
-  useEffect(() => {
-    const theme = localStorage.getItem("theme");
-    if (theme === "dark") setDarkMode(true);
-    else setDarkMode(false);
-  }, []);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [darkMode]);
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -378,14 +365,14 @@ const Settings = () => {
                     </p>
                   </div>
                   <button
-                    onClick={() => setDarkMode(!darkMode)}
+                    onClick={() => setDark(!dark)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      darkMode ? "bg-blue-600" : "bg-gray-200"
+                      dark ? "bg-blue-600" : "bg-gray-200"
                     }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        darkMode ? "translate-x-6" : "translate-x-1"
+                        dark ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
                   </button>

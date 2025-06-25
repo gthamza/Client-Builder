@@ -2,7 +2,7 @@ import { useUser } from "@clerk/clerk-react";
 import { Users, FolderOpen, Receipt, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 
-// Example data for calculation
+
 const clients = [
   { id: 1, name: "Acme Corp", createdAt: "2024-06-01" },
   { id: 2, name: "Tech Startup", createdAt: "2024-06-10" },

@@ -9,6 +9,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ListChecks,
+  BarChart2, // <-- Import icon for Analytics
 } from "lucide-react";
 
 interface SidebarProps {
@@ -26,18 +28,20 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "tasks", label: "Tasks", icon: ListChecks },
     { id: "projects", label: "Projects", icon: FolderOpen },
     { id: "clients", label: "Clients", icon: Users },
     { id: "files", label: "Files", icon: FileText },
     { id: "invoices", label: "Invoices", icon: Receipt },
     { id: "chat", label: "Chat", icon: MessageCircle },
+    { id: "analytics", label: "Analytics", icon: BarChart2 }, // <-- Add Analytics page
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
     <div
       className={`fixed left-0 top-17 h-full bg-white dark:bg-gray-900 shadow-sm border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ${
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-24" : "w-64"
       }`}
     >
       <div className="p-4">
@@ -57,7 +61,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
-
           return (
             <button
               key={item.id}

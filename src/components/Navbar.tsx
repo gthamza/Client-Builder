@@ -1,37 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Settings, LogOut, ChevronDown, Sun, Moon } from "lucide-react";
 import { UserButton, useUser, useClerk } from "@clerk/clerk-react";
 import logo from "../public/Images/logo.jpg";
-interface NavbarProps {
-  onSignOut?: () => void;
-  setCurrentPage: (page: string) => void;
-}
 
-const Navbar: React.FC<NavbarProps> = ({ setCurrentPage }) => {
+type NavbarProps = {
+  onSignOut: () => void;
+  setCurrentPage: React.Dispatch<React.SetStateAction<string>>;
+  dark: boolean;
+  setDark: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+const Navbar: React.FC<NavbarProps> = ({ setCurrentPage, dark, setDark }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [dark, setDark] = useState(false);
   const { user } = useUser();
   const { signOut } = useClerk();
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const theme = localStorage.getItem("theme");
-    if (theme === "dark") {
-      setDark(true);
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
-
-  // Update theme when toggled
-  useEffect(() => {
-    if (dark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [dark]);
 
   return (
     <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-6 py-4">

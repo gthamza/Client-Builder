@@ -18,16 +18,23 @@ import Files from "./components/pages/Files";
 import Invoices from "./components/pages/Invoices";
 import Chat from "./components/pages/Chat";
 import Settings from "./components/pages/Settings";
-
+import Task from "./components/pages/Task";
 import { useSupabaseClient } from "./lib/supabaseClient";
+import Analytics from "./components/pages/Analytics";
+
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authMode] = useState<"signin" | "signup">("signin");
 
-  // Dark mode state
-  const [dark, setDark] = useState(false);
+  // Dark mode state: initialize from localStorage
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") === "dark";
+    }
+    return false;
+  });
 
   const { handleRedirectCallback } = useSignIn();
   const { user } = useUser();
@@ -86,18 +93,7 @@ function App() {
     insertUserToSupabase();
   }, [user, getClient]);
 
-  // Dark mode: load from localStorage and update <html> class
-  useEffect(() => {
-    const theme = localStorage.getItem("theme");
-    if (theme === "dark") {
-      setDark(true);
-      document.documentElement.classList.add("dark");
-    } else {
-      setDark(false);
-      document.documentElement.classList.remove("dark");
-    }
-  }, []);
-
+  // Update <html> class and localStorage when dark changes
   useEffect(() => {
     if (dark) {
       document.documentElement.classList.add("dark");
@@ -113,6 +109,8 @@ function App() {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />;
+      case "tasks":
+        return <Task />;
       case "projects":
         return <Projects />;
       case "clients":
@@ -123,8 +121,10 @@ function App() {
         return <Invoices />;
       case "chat":
         return <Chat />;
+      case "analytics":
+        return <Analytics />; // <-- Add this line
       case "settings":
-        return <Settings />;
+        return <Settings dark={dark} setDark={setDark} />;
       default:
         return <Dashboard />;
     }
@@ -138,7 +138,7 @@ function App() {
             routing="path"
             path="/sign-in"
             redirectUrl="/"
-            afterSignIn={() => setAuthMode("signin")}
+            afterSignInUrl="/"
             appearance={{ variables: { colorPrimary: "#3b82f6" } }}
           />
         ) : (
@@ -146,7 +146,7 @@ function App() {
             routing="path"
             path="/sign-up"
             redirectUrl="/"
-            afterSignUp={() => setAuthMode("signin")}
+            afterSignUpUrl="/"
             appearance={{ variables: { colorPrimary: "#3b82f6" } }}
           />
         )}
