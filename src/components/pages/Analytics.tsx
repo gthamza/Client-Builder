@@ -11,45 +11,25 @@ import {
   PieChart,
   Download,
   Sparkles,
+  Info,
 } from "lucide-react";
 import clsx from "clsx";
 
-// Dummy data for demonstration
+// Constants
+const radius = 45;
+const circumference = 2 * Math.PI * radius;
+
+// Dummy data
 const project = {
   name: "Website Redesign",
-  status: "On Track", // "On Track", "At Risk", "Delayed"
+  status: "On Track",
   lastUpdated: "2025-06-25T10:30:00Z",
   milestones: [
-    {
-      id: 1,
-      name: "Discovery",
-      due: "2025-06-10",
-      status: "completed",
-    },
-    {
-      id: 2,
-      name: "Wireframes",
-      due: "2025-06-15",
-      status: "completed",
-    },
-    {
-      id: 3,
-      name: "Design",
-      due: "2025-06-20",
-      status: "in_progress",
-    },
-    {
-      id: 4,
-      name: "Development",
-      due: "2025-07-01",
-      status: "pending",
-    },
-    {
-      id: 5,
-      name: "QA & Launch",
-      due: "2025-07-10",
-      status: "pending",
-    },
+    { id: 1, name: "Discovery", due: "2025-06-10", status: "completed" },
+    { id: 2, name: "Wireframes", due: "2025-06-15", status: "completed" },
+    { id: 3, name: "Design", due: "2025-06-20", status: "in_progress" },
+    { id: 4, name: "Development", due: "2025-07-01", status: "pending" },
+    { id: 5, name: "QA & Launch", due: "2025-07-10", status: "pending" },
   ],
   projectedCompletion: "2025-07-10",
   tasksCompleted: 18,
@@ -103,11 +83,10 @@ const timeRanges = [
   { label: "All time", value: "all" },
 ];
 
-const Analytics = () => {
+export default function ProjectAnalyticsPage() {
   const [selectedRange, setSelectedRange] = useState(timeRanges[0].value);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Progress calculation
   const totalMilestones = project.milestones.length;
   const completedMilestones = project.milestones.filter(
     (m) => m.status === "completed"
@@ -116,20 +95,18 @@ const Analytics = () => {
     (completedMilestones / totalMilestones) * 100
   );
 
-  // Chart data (dummy, replace with real chart libs if needed)
   const barChartData = project.milestoneHistory.map((h) => ({
     date: h.date,
     completed: h.completed,
   }));
-
   const pieChartData = project.taskTypes;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white p-8 space-y-8">
-      {/* Header Section */}
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white p-6 md:p-10 space-y-8">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">{project.name}</h1>
+          <h1 className="text-3xl font-bold mb-1">{project.name}</h1>
           <div className="flex items-center gap-2">
             <span
               className={clsx(
@@ -150,8 +127,8 @@ const Analytics = () => {
         </div>
         <div className="relative">
           <button
-            className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
             onClick={() => setDropdownOpen((v) => !v)}
+            className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             {timeRanges.find((r) => r.value === selectedRange)?.label}
             <ChevronDown className="w-4 h-4 ml-2" />
@@ -161,16 +138,16 @@ const Analytics = () => {
               {timeRanges.map((range) => (
                 <button
                   key={range.value}
+                  onClick={() => {
+                    setSelectedRange(range.value);
+                    setDropdownOpen(false);
+                  }}
                   className={clsx(
                     "w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700",
                     selectedRange === range.value
                       ? "font-semibold text-blue-600 dark:text-blue-300"
                       : "text-gray-700 dark:text-gray-200"
                   )}
-                  onClick={() => {
-                    setSelectedRange(range.value);
-                    setDropdownOpen(false);
-                  }}
                 >
                   {range.label}
                 </button>
@@ -183,29 +160,26 @@ const Analytics = () => {
       {/* Progress Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-          {/* Circular Progress Bar */}
           <div className="relative w-28 h-28 mb-4">
-            <svg className="w-full h-full" viewBox="0 0 100 100">
+            <svg viewBox="0 0 100 100" className="w-full h-full">
               <circle
                 className="text-gray-200 dark:text-gray-700"
                 strokeWidth="10"
                 stroke="currentColor"
                 fill="transparent"
-                r="45"
+                r={radius}
                 cx="50"
                 cy="50"
               />
               <circle
                 className="text-blue-600"
                 strokeWidth="10"
-                strokeDasharray={2 * Math.PI * 45}
-                strokeDashoffset={
-                  2 * Math.PI * 45 * (1 - percentComplete / 100)
-                }
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (1 - percentComplete / 100)}
                 strokeLinecap="round"
                 stroke="currentColor"
                 fill="transparent"
-                r="45"
+                r={radius}
                 cx="50"
                 cy="50"
                 style={{ transition: "stroke-dashoffset 0.5s" }}
@@ -234,60 +208,59 @@ const Analytics = () => {
         </div>
 
         {/* Activity Summary */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-3">
             <BarChart2 className="w-5 h-5 text-blue-500" />
             <span className="font-semibold">Activity Summary</span>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span>
-                <span className="font-bold">{project.tasksCompleted}</span> tasks completed
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4 text-blue-500" />
-              <span>
-                <span className="font-bold">{project.filesUploaded}</span> files uploaded
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MessageCircle className="w-4 h-4 text-purple-500" />
-              <span>
-                <span className="font-bold">{project.comments}</span> comments/messages
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 text-xs text-gray-500 dark:text-gray-300">
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />{" "}
+              {project.tasksCompleted} tasks completed
+            </li>
+            <li className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-500" />{" "}
+              {project.filesUploaded} files uploaded
+            </li>
+            <li className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-purple-500" />{" "}
+              {project.comments} comments/messages
+            </li>
+          </ul>
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-300">
             {project.summary}
-          </div>
+          </p>
         </div>
 
         {/* Feedback Trends */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-3">
             <PieChart className="w-5 h-5 text-pink-500" />
             <span className="font-semibold">Feedback Trends</span>
           </div>
           <div className="flex items-center gap-2 text-3xl mb-2">
             <span>{project.feedback.mood}</span>
-            <span className="text-lg text-gray-500 dark:text-gray-300">NPS</span>
-            <span className="font-bold text-blue-600">{project.feedback.nps}</span>
+            <span className="text-lg text-gray-500 dark:text-gray-300">
+              NPS
+            </span>
+            <span className="font-bold text-blue-600">
+              {project.feedback.nps}
+            </span>
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-300 mb-2">
-            Latest: <span className="italic">"{project.feedback.latestComment}"</span>
-          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-300 mb-2">
+            Latest:{" "}
+            <span className="italic">"{project.feedback.latestComment}"</span>
+          </p>
         </div>
       </div>
 
-      {/* Milestone Timeline */}
+      {/* Timeline + Charts */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Milestone Timeline</h2>
-        <div className="flex flex-col md:flex-row md:items-start gap-8">
+        <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-1">
             <ol className="relative border-l-4 border-blue-200 dark:border-blue-900 ml-4">
-              {project.milestones.map((m, idx) => (
+              {project.milestones.map((m) => (
                 <li key={m.id} className="mb-8 ml-6">
                   <span
                     className={clsx(
@@ -311,11 +284,7 @@ const Analytics = () => {
                           : "bg-gray-200 text-gray-600"
                       )}
                     >
-                      {m.status === "completed"
-                        ? "Completed"
-                        : m.status === "in_progress"
-                        ? "In Progress"
-                        : "Pending"}
+                      {m.status.replace("_", " ")}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-300">
@@ -325,9 +294,10 @@ const Analytics = () => {
               ))}
             </ol>
           </div>
-          {/* Optional: Simple Bar Chart */}
-          <div className="flex-1 flex flex-col items-center">
-            <h3 className="text-md font-semibold mb-2">Milestone Completion Over Time</h3>
+          <div className="flex-1">
+            <h3 className="text-md font-semibold mb-2">
+              Milestone Completion Over Time
+            </h3>
             <div className="w-full h-40 flex items-end gap-2">
               {barChartData.map((d, i) => (
                 <div key={i} className="flex flex-col items-center flex-1">
@@ -348,7 +318,6 @@ const Analytics = () => {
                 </div>
               ))}
             </div>
-            {/* Pie chart (static, for demo) */}
             <h3 className="text-md font-semibold mt-6 mb-2">Task Types</h3>
             <div className="flex items-center gap-4">
               {pieChartData.map((t, i) => (
@@ -377,16 +346,12 @@ const Analytics = () => {
       {/* Actions */}
       <div className="flex flex-wrap gap-4 mt-8">
         <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
-          <Sparkles className="w-4 h-4" />
-          Generate AI Summary
+          <Sparkles className="w-4 h-4" /> Generate AI Summary
         </button>
         <button className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-semibold transition-colors">
-          <Download className="w-4 h-4" />
-          Download Report
+          <Download className="w-4 h-4" /> Download Report
         </button>
       </div>
     </div>
   );
-};
-
-export default Analytics;
+}
