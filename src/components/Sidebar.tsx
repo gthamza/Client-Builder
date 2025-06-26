@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       className={`fixed left-0 top-17 h-full bg-white dark:bg-gray-900 shadow-sm border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ${
-        collapsed ? "w-24" : "w-64"
+        collapsed ? "w-17" : "w-64"
       }`}
     >
       <div className="p-4">

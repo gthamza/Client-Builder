@@ -78,7 +78,7 @@ const Files = () => {
 
     setFiles([
       {
-        id: files.length ? Math.max(...files.map((f) => f.id)) + 1 : 1,
+        id: files.length ? Math.max(...files.map(f => f.id)) + 1 : 1,
         name: form.name,
         type: form.type,
         size: form.size,
@@ -209,8 +209,8 @@ const Files = () => {
               Delete File
             </h2>
             <p className="mb-6 text-center text-gray-700 dark:text-gray-300">
-              Are you sure you want to delete this file? This action cannot be
-              undone.
+              Are you sure you want to delete this file? This action cannot
+              be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -255,10 +255,7 @@ const Files = () => {
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
               {editFileId ? "Edit File" : "Upload New File"}
             </h2>
-            <form
-              onSubmit={editFileId ? handleUpdateFile : handleAddFile}
-              className="space-y-4"
-            >
+            <form onSubmit={editFileId ? handleUpdateFile : handleAddFile} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Select File

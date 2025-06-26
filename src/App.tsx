@@ -42,21 +42,42 @@ function App() {
 
   // ✅ Handle OAuth redirect
   useEffect(() => {
-    const completeOAuth = async () => {
-      if (window.location.search.includes("__clerk")) {
-        try {
-          const result = await handleRedirectCallback();
-          console.log("✅ OAuth complete:", result);
-          window.history.replaceState({}, document.title, "/");
-        } catch (err) {
-          console.error("❌ OAuth redirect error:", err);
+    const insertUserToSupabase = async () => {
+      if (!user) return;
+
+      const supabase = await getClient();
+
+      const clerkId = user.id.trim();
+      const name = user.firstName || "";
+      const email = user.primaryEmailAddress?.emailAddress || "";
+      const image_url = user.imageUrl || ""; // ✅ Add this line
+
+      try {
+        const { error: insertError } = await supabase.from("users").upsert(
+          [
+            {
+              clerk_id: clerkId,
+              name,
+              email,
+              image_url, // ✅ Save the image
+            },
+          ],
+          { onConflict: "clerk_id" }
+        );
+
+        if (insertError) {
+          console.error("❌ Supabase upsert error:", insertError.message);
+        } else {
+          console.log("✅ User synced to Supabase with image");
         }
+      } catch (error) {
+        console.error("❌ Supabase user sync error:", error);
       }
     };
 
-    completeOAuth();
-  }, [handleRedirectCallback]);
-
+    insertUserToSupabase();
+  }, [user, getClient]);
+  
   // ✅ Sync Clerk user to Supabase
   useEffect(() => {
     const insertUserToSupabase = async () => {
@@ -169,7 +190,7 @@ function App() {
             />
             <main
               className={`flex-1 transition-all duration-300 ${
-                sidebarCollapsed ? "ml-16" : "ml-64"
+                sidebarCollapsed ? "ml-24" : "ml-64"
               }`}
             >
               <div className="p-6">{renderCurrentPage()}</div>
