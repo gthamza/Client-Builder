@@ -1,416 +1,363 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   MoreHorizontal,
-  Calendar,
+  Calendar as CalendarIcon,
   X,
   ListChecks,
   Layout,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import {
+  Calendar as BigCalendar,
+  momentLocalizer,
+  Event as CalendarEvent,
+} from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 
-type TaskType = {
-  id: string;
-  title: string;
-  due: string;
-  priority: "High" | "Normal" | "Low";
-  status: Status;
+// Types
+const statusOrder = ["Pending", "In Progress", "Completed", "Launched"];
+const statusColors = {
+  Pending: "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+  "In Progress":
+    "bg-yellow-100 dark:bg-yellow-900 border-yellow-200 dark:border-yellow-700",
+  Completed:
+    "bg-green-100 dark:bg-green-900 border-green-200 dark:border-green-700",
+  Launched: "bg-blue-100 dark:bg-blue-900 border-blue-200 dark:border-blue-700",
 };
-
-type Status = "Pending" | "In Progress" | "Completed" | "Launched";
-
-const statusOrder: Status[] = [
-  "Pending",
-  "In Progress",
-  "Completed",
-  "Launched",
-];
-
-const statusColors: Record<Status, string> = {
-  Pending: "bg-gray-900 border-gray-700",
-  "In Progress": "bg-yellow-900 border-yellow-700",
-  Completed: "bg-green-900 border-green-700",
-  Launched: "bg-blue-900 border-blue-700",
-};
-
-const statusDot: Record<Status, string> = {
+const statusDot = {
   Pending: "bg-gray-400",
   "In Progress": "bg-yellow-400",
   Completed: "bg-green-400",
   Launched: "bg-blue-400",
 };
-
-const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority) => {
   switch (priority) {
     case "High":
-      return "text-red-400 border-red-400";
+      return "text-red-500 border-red-500";
     case "Normal":
-      return "text-blue-400 border-blue-400";
+      return "text-blue-500 border-blue-500";
     case "Low":
-      return "text-gray-400 border-gray-400";
     default:
-      return "text-gray-400 border-gray-400";
+      return "text-gray-500 border-gray-500";
   }
 };
-
-const isOverdue = (due: string) => {
-  if (!due) return false;
+const isOverdue = (due) => {
   const date = new Date(due);
-  if (isNaN(date.getTime())) return false;
-  return date.getTime() < Date.now();
+  return !isNaN(date.getTime()) && date.getTime() < Date.now();
 };
+const localizer = momentLocalizer(moment);
 
-const Task: React.FC = () => {
-  const [tasks, setTasks] = useState<TaskType[]>([]);
-  const [dragged, setDragged] = useState<TaskType | null>(null);
+const Task = () => {
+  const [tasks, setTasks] = useState([]);
+  const [dragged, setDragged] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Omit<TaskType, "id">>({
+  const [form, setForm] = useState({
     title: "",
     due: "",
     priority: "Normal",
     status: "Pending",
   });
-  const [formDate, setFormDate] = useState<Date | null>(null);
-  const [view, setView] = useState<"board" | "todo">("board");
-  const [todoInput, setTodoInput] = useState(""); // For quick add in Todo view
-  const [todoDate, setTodoDate] = useState<Date | null>(null);
+  const [formDate, setFormDate] = useState(null);
+  const [view, setView] = useState("board");
+  const [todoInput, setTodoInput] = useState("");
+  const [todoDate, setTodoDate] = useState(null);
+  const [filter, setFilter] = useState("all");
 
-  // Floating button for mobile/desktop
-  const FloatingAddButton = (
-    <button
-      aria-label="Add Task"
-      onClick={() => setShowForm(true)}
-      className="fixed z-40 bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-      <Plus className="w-6 h-6" />
-    </button>
-  );
+  useEffect(() => {
+    const stored = localStorage.getItem("tasks");
+    if (stored) setTasks(JSON.parse(stored));
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }, [tasks]);
 
   const handleAddTask = () => {
     if (!form.title.trim()) return;
-    const newTask: TaskType = {
+    const newTask = {
       id: Date.now().toString(),
-      ...form,
-      due: formDate ? formDate.toISOString() : "",
+      title: form.title.trim(),
+      due: formDate?.toISOString() || "",
+      priority: form.priority,
+      status: form.status,
     };
-    setTasks((prev) => [...prev, newTask]);
-    setForm({
-      title: "",
-      due: "",
-      priority: "Normal",
-      status: "Pending",
-    });
+    setTasks((p) => [...p, newTask]);
+    setForm({ title: "", due: "", priority: "Normal", status: "Pending" });
     setFormDate(null);
     setShowForm(false);
   };
 
-  const onDragStart = (task: TaskType) => setDragged(task);
-  const onDragOver = (e: React.DragEvent) => e.preventDefault();
-  const onDrop = (status: Status) => {
+  const onDragStart = (t) => setDragged(t);
+  const onDragOver = (e) => e.preventDefault();
+  const onDrop = (status) => {
     if (!dragged) return;
-    setTasks((prev) =>
-      prev.map((t) => (t.id === dragged.id ? { ...t, status } : t))
-    );
+    setTasks((p) => p.map((t) => (t.id === dragged.id ? { ...t, status } : t)));
     setDragged(null);
   };
 
-  const grouped: Record<Status, TaskType[]> = {
+  const filteredTasks = tasks.filter((t) => {
+    const due = new Date(t.due);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    if (filter === "today") return due >= today && due < tomorrow;
+    if (filter === "overdue") return due < today;
+    if (filter === "upcoming") return due >= tomorrow;
+    return true;
+  });
+
+  const calendarEvents = filteredTasks.map((t) => ({
+    title: `${t.title} (${t.priority})`,
+    start: new Date(t.due),
+    end: new Date(t.due),
+  }));
+
+  const grouped = {
     Pending: [],
     "In Progress": [],
     Completed: [],
     Launched: [],
   };
-  tasks.forEach((t) => grouped[t.status].push(t));
-
-  // Todo List View with quick add
-  const TodoList = (
-    <div className="w-full max-w-2xl mx-auto bg-gray-900 border border-gray-700 rounded-xl shadow-md p-4 mt-4">
-      <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <ListChecks className="w-5 h-5" /> Todo List
-      </h2>
-      {/* Quick add input */}
-      <form
-        className="flex gap-2 mb-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!todoInput.trim()) return;
-          setTasks((prev) => [
-            ...prev,
-            {
-              id: Date.now().toString(),
-              title: todoInput,
-              due: todoDate ? todoDate.toISOString() : "",
-              priority: "Normal",
-              status: "Pending",
-            },
-          ]);
-          setTodoInput("");
-          setTodoDate(null);
-        }}
-      >
-        <input
-          type="text"
-          className="flex-1 border border-gray-700 px-3 py-2 rounded bg-gray-900 text-white text-sm"
-          placeholder="Quick add task..."
-          value={todoInput}
-          onChange={(e) => setTodoInput(e.target.value)}
-          aria-label="Quick add task"
-        />
-        <DatePicker
-          selected={todoDate}
-          onChange={(date) => setTodoDate(date)}
-          showTimeSelect
-          dateFormat="Pp"
-          placeholderText="Due date"
-          className="border border-gray-700 px-3 py-2 rounded bg-gray-900 text-white text-sm w-36"
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold text-sm"
-        >
-          Add
-        </button>
-      </form>
-      {tasks.length === 0 && (
-        <div className="text-gray-500 text-sm italic text-center py-8">
-          No tasks
-        </div>
-      )}
-      <ul className="divide-y divide-gray-800">
-        {tasks.map((task) => (
-          <li key={task.id} className="py-3 flex items-start gap-3">
-            <span
-              className={`mt-1 w-2 h-2 rounded-full ${statusDot[task.status]}`}
-              title={task.status}
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white text-sm">
-                  {task.title}
-                </span>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(
-                    task.priority
-                  )} bg-opacity-10`}
-                >
-                  {task.priority}
-                </span>
-                <span className="text-xs text-gray-400">{task.status}</span>
-              </div>
-              <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
-                <Calendar className="w-3 h-3" />
-                {task.due ? new Date(task.due).toLocaleString() : ""}
-                {isOverdue(task.due) && (
-                  <span className="bg-red-900 text-red-300 px-2 rounded text-xs font-bold ml-2">
-                    Overdue
-                  </span>
-                )}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
-  // Kanban Board View
-  const KanbanBoard = (
-    <div className="flex gap-4 overflow-x-auto pb-4">
-      {statusOrder.map((status) => (
-        <div
-          key={status}
-          className={`flex-1 min-w-[210px] max-w-xs rounded-xl border ${statusColors[status]} border shadow-md flex flex-col p-3`}
-          onDragOver={onDragOver}
-          onDrop={() => onDrop(status)}
-          style={{ minHeight: 260 }}
-          aria-label={`${status} column`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${statusDot[status]}`} />
-              <span className="font-semibold text-white">{status}</span>
-              <span className="ml-2 text-xs text-gray-400">
-                {grouped[status].length}
-              </span>
-            </div>
-            <MoreHorizontal className="w-4 h-4 text-gray-500" />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {grouped[status].length === 0 && (
-              <div className="text-gray-500 text-xs italic text-center py-6">
-                No tasks
-              </div>
-            )}
-            {grouped[status].map((task) => (
-              <div
-                key={task.id}
-                className="bg-gray-800 border border-gray-700 rounded-lg p-3 cursor-move shadow hover:shadow-lg transition-shadow"
-                draggable
-                aria-grabbed={dragged?.id === task.id}
-                onDragStart={() => onDragStart(task)}
-                onDragEnd={() => setDragged(null)}
-                tabIndex={0}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-white text-sm">
-                    {task.title}
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(
-                      task.priority
-                    )} bg-opacity-10`}
-                  >
-                    {task.priority}
-                  </span>
-                </div>
-                <div className="text-xs text-gray-400 flex items-center gap-2 mt-2">
-                  <Calendar className="w-3 h-3" />
-                  {task.due ? new Date(task.due).toLocaleString() : ""}
-                  {isOverdue(task.due) && (
-                    <span className="bg-red-900 text-red-300 px-2 rounded text-xs font-bold ml-2">
-                      Overdue
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setShowForm(true)}
-            className="mt-4 flex items-center gap-1 text-xs text-blue-400 hover:underline"
-          >
-            <Plus className="w-4 h-4" />
-            Add New
-          </button>
-        </div>
-      ))}
-    </div>
-  );
+  filteredTasks.forEach((t) => grouped[t.status].push(t));
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto px-2 md:px-4 py-6 relative">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Tasks</h1>
-        <p className="text-gray-400 mt-1">Manage your project tasks</p>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="max-w-6xl mx-auto p-4 space-y-4 text-black dark:text-white">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Tasks</h1>
         <div className="flex gap-2">
-          <button
-            className={`px-3 py-1 rounded flex items-center gap-1 text-xs font-semibold ${
-              view === "board"
-                ? "bg-blue-600 text-white"
-                : "bg-blue-900 text-blue-200"
-            }`}
-            onClick={() => setView("board")}
-            aria-pressed={view === "board"}
-          >
-            <Layout className="w-4 h-4" />
-            Board
-          </button>
-          <button
-            className={`px-3 py-1 rounded flex items-center gap-1 text-xs font-semibold ${
-              view === "todo"
-                ? "bg-blue-600 text-white"
-                : "bg-blue-900 text-blue-200"
-            }`}
-            onClick={() => setView("todo")}
-            aria-pressed={view === "todo"}
-          >
-            <ListChecks className="w-4 h-4" />
-            Todo List
-          </button>
+          {["board", "todo", "calendar"].map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1 rounded ${
+                view === v
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 dark:bg-gray-800 text-black dark:text-white"
+              }`}
+            >
+              {v === "board" ? (
+                <Layout />
+              ) : v === "todo" ? (
+                <ListChecks />
+              ) : (
+                <CalendarIcon />
+              )}
+            </button>
+          ))}
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="hidden md:flex items-center gap-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow"
-        >
-          <Plus className="w-4 h-4" />
-          Add New
-        </button>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {["all", "today", "upcoming", "overdue"].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded"
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {view === "board" ? KanbanBoard : TodoList}
+      {view === "calendar" && (
+        <BigCalendar
+          localizer={localizer}
+          events={calendarEvents}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: 500 }}
+        />
+      )}
 
-      {/* Floating Add Button (mobile/desktop) */}
-      {FloatingAddButton}
-
-      {/* Modal Form */}
-      {showForm && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
-          aria-modal="true"
-          role="dialog"
-        >
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-xs md:max-w-md shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-white">Add New Task</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="p-1 rounded hover:bg-gray-800"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5 text-gray-300" />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="Task title"
-                className="border border-gray-700 px-3 py-2 rounded bg-gray-900 text-white text-sm"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                aria-label="Task title"
-              />
-              <DatePicker
-                selected={formDate}
-                onChange={(date) => setFormDate(date)}
-                showTimeSelect
-                dateFormat="Pp"
-                placeholderText="Due date"
-                className="border border-gray-700 px-3 py-2 rounded bg-gray-900 text-white text-sm w-full"
-              />
-              <select
-                className="border border-gray-700 px-3 py-2 rounded bg-gray-900 text-white text-sm"
-                value={form.priority}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    priority: e.target.value as TaskType["priority"],
-                  })
-                }
-                aria-label="Priority"
-              >
-                <option value="High">High</option>
-                <option value="Normal">Normal</option>
-                <option value="Low">Low</option>
-              </select>
-              <select
-                className="border border-gray-700 px-3 py-2 rounded bg-gray-900 text-white text-sm"
-                value={form.status}
-                onChange={(e) =>
-                  setForm({ ...form, status: e.target.value as Status })
-                }
-                aria-label="Status"
-              >
-                {statusOrder.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
+      {view === "board" && (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {statusOrder.map((s) => (
+            <div
+              key={s}
+              onDragOver={onDragOver}
+              onDrop={() => onDrop(s)}
+              className={`flex-1 min-w-[200px] border rounded p-3 ${statusColors[s]}`}
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${statusDot[s]}`} />
+                  <span>{s}</span>
+                  <span className="text-xs text-gray-400">
+                    {grouped[s].length}
+                  </span>
+                </div>
+                <MoreHorizontal />
+              </div>
+              <div className="space-y-2">
+                {grouped[s].map((t) => (
+                  <div
+                    key={t.id}
+                    draggable
+                    onDragStart={() => onDragStart(t)}
+                    className="bg-gray-100 dark:bg-gray-800 p-3 rounded cursor-move"
+                  >
+                    <div className="flex justify-between">
+                      <span>{t.title}</span>
+                      <span
+                        className={`text-xs px-2 rounded-full border ${getPriorityColor(
+                          t.priority
+                        )}`}
+                      >
+                        {t.priority}
+                      </span>
+                    </div>
+                    <div className="flex items-center mt-1 text-gray-400 text-xs">
+                      <CalendarIcon className="w-3 h-3 mr-1" />
+                      {new Date(t.due).toLocaleString()}
+                      {isOverdue(t.due) && (
+                        <span className="ml-2 text-red-500">⚠ Overdue</span>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </select>
-
+              </div>
               <button
-                onClick={handleAddTask}
-                className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold text-sm"
+                onClick={() => setShowForm(true)}
+                className="mt-3 text-blue-500 text-xs"
               >
-                Add Task
+                + Add Task
               </button>
             </div>
+          ))}
+        </div>
+      )}
+
+      {view === "todo" && (
+        <div className="max-w-2xl mx-auto bg-gray-100 dark:bg-gray-900 p-4 rounded shadow">
+          <h2 className="flex items-center mb-4">
+            <ListChecks className="mr-2" /> Todo List
+          </h2>
+          <form
+            className="flex gap-2 mb-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!todoInput.trim()) return;
+              setTasks((p) => [
+                ...p,
+                {
+                  id: Date.now().toString(),
+                  title: todoInput.trim(),
+                  due: todoDate?.toISOString() || "",
+                  priority: "Normal",
+                  status: "Pending",
+                },
+              ]);
+              setTodoInput("");
+              setTodoDate(null);
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Quick add"
+              className="flex-1 p-2 bg-white dark:bg-gray-800 rounded"
+              value={todoInput}
+              onChange={(e) => setTodoInput(e.target.value)}
+            />
+            <DatePicker
+              selected={todoDate}
+              onChange={(d) => setTodoDate(d)}
+              showTimeSelect
+              dateFormat="Pp"
+              className="w-36 p-2 bg-white dark:bg-gray-800 rounded"
+            />
+            <button className="bg-blue-600 px-4 rounded text-white">Add</button>
+          </form>
+          {filteredTasks.length === 0 && (
+            <p className="text-gray-500 text-center py-8">No tasks found.</p>
+          )}
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredTasks.map((t) => (
+              <li key={t.id} className="py-2 flex gap-3">
+                <span
+                  className={`mt-1 w-2 h-2 rounded-full ${statusDot[t.status]}`}
+                />
+                <div>
+                  <div className="flex justify-between">
+                    <span>{t.title}</span>
+                    <span
+                      className={`text-xs px-2 rounded-full border ${getPriorityColor(
+                        t.priority
+                      )}`}
+                    >
+                      {t.priority}
+                    </span>
+                  </div>
+                  <div className="text-gray-400 text-xs mt-1 flex items-center">
+                    <CalendarIcon className="w-3 h-3 mr-1" />
+                    {new Date(t.due).toLocaleString()}
+                    {isOverdue(t.due) && (
+                      <span className="ml-2 text-red-500">⚠ Overdue</span>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <button
+        aria-label="Add Task"
+        onClick={() => setShowForm(true)}
+        className="fixed bottom-6 right-6 bg-blue-600 p-4 rounded-full shadow-lg text-white"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg max-w-sm w-full text-black dark:text-white">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold">Add New Task</h2>
+              <button onClick={() => setShowForm(false)}>
+                <X />
+              </button>
+            </div>
+            <input
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+            />
+            <DatePicker
+              selected={formDate}
+              onChange={(d) => setFormDate(d)}
+              showTimeSelect
+              dateFormat="Pp"
+              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+              placeholderText="Due Date"
+            />
+            <select
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+            >
+              <option>High</option>
+              <option>Normal</option>
+              <option>Low</option>
+            </select>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+            >
+              {statusOrder.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleAddTask}
+              className="bg-blue-600 w-full py-2 rounded text-white"
+            >
+              Save Task
+            </button>
           </div>
         </div>
       )}

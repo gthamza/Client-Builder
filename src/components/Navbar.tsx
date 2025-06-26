@@ -16,7 +16,7 @@ const Navbar: React.FC<NavbarProps> = ({ setCurrentPage, dark, setDark }) => {
   const { signOut } = useClerk();
 
   return (
-    <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+    <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-6 py-4 backdrop-blur bg-opacity-90 dark:bg-opacity-90">
       <div className="flex items-center justify-between">
         <div
           className="flex items-center space-x-2 cursor-pointer hover:opacity-80"
