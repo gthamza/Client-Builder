@@ -1,0 +1,27 @@
+/* Make today cell clearly visible */
+.rbc-today {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  /* Make events readable in dark mode */
+  .rbc-event {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  
+  /* Optional: darken non-current-month cells */
+  .rbc-off-range-bg {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  /* Make weekday labels more readable */
+  .rbc-header {
+    color: #fff !important;
+    background-color: #111 !important;
+    border-bottom: 1px solid #444 !important;
+  }
+  

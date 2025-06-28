@@ -22,7 +22,6 @@ import Task from "./components/pages/Task";
 import { useSupabaseClient } from "./lib/supabaseClient";
 import Analytics from "./components/pages/Analytics";
 
-
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -50,7 +49,7 @@ function App() {
       const clerkId = user.id.trim();
       const name = user.firstName || "";
       const email = user.primaryEmailAddress?.emailAddress || "";
-      const image_url = user.imageUrl || ""; // ✅ Add this line
+      const image_url = user.imageUrl || "";
 
       try {
         const { error: insertError } = await supabase.from("users").upsert(
@@ -59,7 +58,7 @@ function App() {
               clerk_id: clerkId,
               name,
               email,
-              image_url, // ✅ Save the image
+              image_url,
             },
           ],
           { onConflict: "clerk_id" }
@@ -77,7 +76,7 @@ function App() {
 
     insertUserToSupabase();
   }, [user, getClient]);
-  
+
   // ✅ Sync Clerk user to Supabase
   useEffect(() => {
     const insertUserToSupabase = async () => {
@@ -143,7 +142,7 @@ function App() {
       case "chat":
         return <Chat />;
       case "analytics":
-        return <Analytics />; // <-- Add this line
+        return <Analytics />; 
       case "settings":
         return <Settings dark={dark} setDark={setDark} />;
       default:

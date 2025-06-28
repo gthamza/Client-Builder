@@ -4,14 +4,12 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Calendar,
   FileText,
   MessageCircle,
   BarChart2,
   PieChart,
   Download,
   Sparkles,
-  Info,
 } from "lucide-react";
 import clsx from "clsx";
 

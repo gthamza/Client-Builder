@@ -9,15 +9,13 @@ import {
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import {
-  Calendar as BigCalendar,
-  momentLocalizer,
-  Event as CalendarEvent,
-} from "react-big-calendar";
+import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { useUser } from "@clerk/clerk-react";
+import { useSupabaseClient } from "../../lib/supabaseClient";
+import "./custom-calendar.css";
 
-// Types
 const statusOrder = ["Pending", "In Progress", "Completed", "Launched"];
 const statusColors = {
   Pending: "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
@@ -51,9 +49,13 @@ const isOverdue = (due) => {
 const localizer = momentLocalizer(moment);
 
 const Task = () => {
+  const { user } = useUser();
+  const { getClient } = useSupabaseClient();
+
   const [tasks, setTasks] = useState([]);
   const [dragged, setDragged] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [form, setForm] = useState({
     title: "",
     due: "",
@@ -67,45 +69,132 @@ const Task = () => {
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
-    const stored = localStorage.getItem("tasks");
-    if (stored) setTasks(JSON.parse(stored));
-  }, []);
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  const handleAddTask = () => {
-    if (!form.title.trim()) return;
-    const newTask = {
-      id: Date.now().toString(),
-      title: form.title.trim(),
-      due: formDate?.toISOString() || "",
-      priority: form.priority,
-      status: form.status,
+    const fetchTasks = async () => {
+      if (!user) return;
+      const supabase = await getClient();
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("clerk_id", user.id);
+      if (error) {
+        console.error("Error loading tasks:", error.message);
+        return;
+      }
+      setTasks(data || []);
     };
-    setTasks((p) => [...p, newTask]);
+    fetchTasks();
+  }, [user]);
+
+  const handleSaveTask = async () => {
+    if (!form.title.trim() || !user) return;
+    const supabase = await getClient();
+
+    if (editingTaskId) {
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          title: form.title.trim(),
+          due: formDate?.toISOString() || null,
+          priority: form.priority,
+          status: form.status,
+        })
+        .eq("id", editingTaskId)
+        .eq("clerk_id", user.id);
+
+      if (error) {
+        console.error("Error updating task:", error.message);
+        return;
+      }
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === editingTaskId
+            ? {
+                ...t,
+                title: form.title.trim(),
+                due: formDate?.toISOString() || null,
+                priority: form.priority,
+                status: form.status,
+              }
+            : t
+        )
+      );
+    } else {
+      const newTask = {
+        id: Date.now().toString(),
+        title: form.title.trim(),
+        due: formDate?.toISOString() || null,
+        priority: form.priority,
+        status: form.status,
+        clerk_id: user.id,
+      };
+      const { error } = await supabase.from("tasks").insert([newTask]);
+      if (error) {
+        console.error("Error saving task:", error.message);
+        return;
+      }
+      setTasks((prev) => [...prev, newTask]);
+    }
+
     setForm({ title: "", due: "", priority: "Normal", status: "Pending" });
     setFormDate(null);
+    setEditingTaskId(null);
     setShowForm(false);
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTaskId(task.id);
+    setForm({
+      title: task.title,
+      due: task.due,
+      priority: task.priority,
+      status: task.status,
+    });
+    setFormDate(task.due ? new Date(task.due) : null);
+    setShowForm(true);
+  };
+
+  const handleDeleteTask = async (id) => {
+    const supabase = await getClient();
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("clerk_id", user.id);
+    if (error) {
+      console.error("Error deleting task:", error.message);
+      return;
+    }
+    setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
   const onDragStart = (t) => setDragged(t);
   const onDragOver = (e) => e.preventDefault();
-  const onDrop = (status) => {
-    if (!dragged) return;
-    setTasks((p) => p.map((t) => (t.id === dragged.id ? { ...t, status } : t)));
+  const onDrop = async (status) => {
+    if (!dragged || !user) return;
+    const supabase = await getClient();
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status })
+      .eq("id", dragged.id)
+      .eq("clerk_id", user.id);
+    if (error) {
+      console.error("Error updating task:", error.message);
+      return;
+    }
+    setTasks((prev) =>
+      prev.map((t) => (t.id === dragged.id ? { ...t, status } : t))
+    );
     setDragged(null);
   };
 
   const filteredTasks = tasks.filter((t) => {
-    const due = new Date(t.due);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    if (filter === "today") return due >= today && due < tomorrow;
-    if (filter === "overdue") return due < today;
-    if (filter === "upcoming") return due >= tomorrow;
+    if (!t.due) return false;
+    const due = moment.utc(t.due).local();
+    const today = moment().startOf("day");
+    if (filter === "today") return due.isSame(today, "day");
+    if (filter === "overdue") return due.isBefore(today, "day");
+    if (filter === "upcoming") return due.isAfter(today, "day");
     return true;
   });
 
@@ -149,6 +238,7 @@ const Task = () => {
           ))}
         </div>
       </div>
+
       <div className="flex gap-2 flex-wrap">
         {["all", "today", "upcoming", "overdue"].map((f) => (
           <button
@@ -172,7 +262,7 @@ const Task = () => {
       )}
 
       {view === "board" && (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-4 overflow-x-auto pb-4 h-80px">
           {statusOrder.map((s) => (
             <div
               key={s}
@@ -215,6 +305,20 @@ const Task = () => {
                         <span className="ml-2 text-red-500">⚠ Overdue</span>
                       )}
                     </div>
+                    <div className="flex justify-end gap-2 mt-1 text-xs">
+                      <button
+                        onClick={() => handleEditTask(t)}
+                        className="text-blue-500 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTask(t.id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -236,19 +340,24 @@ const Task = () => {
           </h2>
           <form
             className="flex gap-2 mb-4"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              if (!todoInput.trim()) return;
-              setTasks((p) => [
-                ...p,
-                {
-                  id: Date.now().toString(),
-                  title: todoInput.trim(),
-                  due: todoDate?.toISOString() || "",
-                  priority: "Normal",
-                  status: "Pending",
-                },
-              ]);
+              if (!todoInput.trim() || !user) return;
+              const newTask = {
+                id: Date.now().toString(),
+                title: todoInput.trim(),
+                due: todoDate?.toISOString() || "",
+                priority: "Normal",
+                status: "Pending",
+                clerk_id: user.id,
+              };
+              const supabase = await getClient();
+              const { error } = await supabase.from("tasks").insert([newTask]);
+              if (error) {
+                console.error("Error saving task:", error.message);
+                return;
+              }
+              setTasks((prev) => [...prev, newTask]);
               setTodoInput("");
               setTodoDate(null);
             }}
@@ -269,16 +378,13 @@ const Task = () => {
             />
             <button className="bg-blue-600 px-4 rounded text-white">Add</button>
           </form>
-          {filteredTasks.length === 0 && (
-            <p className="text-gray-500 text-center py-8">No tasks found.</p>
-          )}
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredTasks.map((t) => (
               <li key={t.id} className="py-2 flex gap-3">
                 <span
                   className={`mt-1 w-2 h-2 rounded-full ${statusDot[t.status]}`}
                 />
-                <div>
+                <div className="flex-1">
                   <div className="flex justify-between">
                     <span>{t.title}</span>
                     <span
@@ -296,6 +402,20 @@ const Task = () => {
                       <span className="ml-2 text-red-500">⚠ Overdue</span>
                     )}
                   </div>
+                  <div className="flex gap-2 mt-1 text-xs">
+                    <button
+                      onClick={() => handleEditTask(t)}
+                      className="text-blue-500 hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTask(t.id)}
+                      className="text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
@@ -312,32 +432,47 @@ const Task = () => {
       </button>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg max-w-sm w-full text-black dark:text-white">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-bold">Add New Task</h2>
-              <button onClick={() => setShowForm(false)}>
-                <X />
+        <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl max-w-sm w-full text-black dark:text-white font-sans space-y-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-semibold">
+                {editingTaskId ? "Edit Task" : "Add New Task"}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingTaskId(null);
+                  setForm({
+                    title: "",
+                    due: "",
+                    priority: "Normal",
+                    status: "Pending",
+                  });
+                  setFormDate(null);
+                }}
+                className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full p-2 transition"
+              >
+                <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             <input
-              placeholder="Title"
+              placeholder="Task title"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+              className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm"
             />
             <DatePicker
               selected={formDate}
               onChange={(d) => setFormDate(d)}
               showTimeSelect
               dateFormat="Pp"
-              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
               placeholderText="Due Date"
+              className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm"
             />
             <select
               value={form.priority}
               onChange={(e) => setForm({ ...form, priority: e.target.value })}
-              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+              className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm"
             >
               <option>High</option>
               <option>Normal</option>
@@ -346,17 +481,17 @@ const Task = () => {
             <select
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="w-full p-2 mb-2 bg-white dark:bg-gray-800 rounded"
+              className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm"
             >
               {statusOrder.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
             <button
-              onClick={handleAddTask}
-              className="bg-blue-600 w-full py-2 rounded text-white"
+              onClick={handleSaveTask}
+              className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition"
             >
-              Save Task
+              {editingTaskId ? "Update Task" : "Save Task"}
             </button>
           </div>
         </div>

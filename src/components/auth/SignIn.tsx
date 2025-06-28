@@ -14,7 +14,7 @@ import { Route } from "react-router-dom";
           card: "rounded-xl shadow-md border border-gray-200 p-6 bg-white",
           logoBox:
             "w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 mx-auto",
-          logoImage: "hidden", // hide default logo if needed
+          logoImage: "hidden", 
           headerTitle: "text-3xl font-bold text-gray-900 text-center",
           headerSubtitle: "text-gray-600 text-center",
           formFieldLabel: "text-sm font-medium text-gray-700",

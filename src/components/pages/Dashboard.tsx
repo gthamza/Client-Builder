@@ -1,171 +1,211 @@
+import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
-import { Users, FolderOpen, Receipt, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
-
-
-const clients = [
-  { id: 1, name: "Acme Corp", createdAt: "2024-06-01" },
-  { id: 2, name: "Tech Startup", createdAt: "2024-06-10" },
-  { id: 3, name: "Global Industries", createdAt: "2024-05-15" },
-];
-
-const projects = [
-  { id: 1, name: "Website Redesign", status: "Active" },
-  { id: 2, name: "Mobile App", status: "Completed" },
-  { id: 3, name: "Branding", status: "Active" },
-];
-
-const invoices = [
-  { id: 1, client: "Acme Corp", amount: 1200, status: "Paid" },
-  { id: 2, client: "Tech Startup", amount: 800, status: "Pending" },
-  { id: 3, client: "Global Industries", amount: 1500, status: "Overdue" },
-];
-
-const recentActivity = [
-  {
-    type: "invoice",
-    action: "Invoice #INV-003 marked as Overdue",
-    time: "2 hours ago",
-  },
-  {
-    type: "file",
-    action: "New file uploaded for Tech Startup",
-    time: "5 hours ago",
-  },
-  {
-    type: "client",
-    action: "Added new client: Tech Startup",
-    time: "1 day ago",
-  },
-  {
-    type: "payment",
-    action: "Payment received from Acme Corp",
-    time: "2 days ago",
-  },
-];
+import { useSupabaseClient } from "../../lib/supabaseClient";
+import { Users, FolderOpen, Receipt, TrendingUp, Sparkles } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useUser();
+  const { getClient } = useSupabaseClient();
 
-  // Calculations for summary cards
-  const totalClients = clients.length;
-  const activeProjects = projects.filter((p) => p.status === "Active").length;
-  const totalInvoices = invoices.length;
-  const totalRevenue = invoices
-    .filter((inv) => inv.status === "Paid")
-    .reduce((sum, inv) => sum + inv.amount, 0);
+  const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
 
-  const summaryCards = useMemo(
-    () => [
-      {
-        title: "Total Clients",
-        value: totalClients,
-        icon: Users,
-        color: "bg-blue-500",
-        change: "+2 this month",
-      },
-      {
-        title: "Active Projects",
-        value: activeProjects,
-        icon: FolderOpen,
-        color: "bg-green-500",
-        change: "+1 this week",
-      },
-      {
-        title: "Total Invoices",
-        value: totalInvoices,
-        icon: Receipt,
-        color: "bg-purple-500",
-        change: "+3 this month",
-      },
-      {
-        title: "Revenue (Paid)",
-        value: `$${totalRevenue.toLocaleString()}`,
-        icon: TrendingUp,
-        color: "bg-yellow-500",
-        change: "+$1,200 this month",
-      },
-    ],
-    [totalClients, activeProjects, totalInvoices, totalRevenue]
+  const [summary, setSummary] = useState("");
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState("");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = await getClient();
+      const clerkId = user?.id;
+      if (!clerkId) return;
+
+      const { data: clientData } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("clerk_id", clerkId);
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("clerk_id", clerkId);
+      const { data: invoiceData } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("clerk_id", clerkId);
+      const { data: activityData } = await supabase
+        .from("invoices")
+        .select("status, id, updated_at")
+        .eq("clerk_id", clerkId)
+        .order("updated_at", { ascending: false })
+        .limit(5);
+
+      setClients(clientData || []);
+      setProjects(projectData || []);
+      setInvoices(invoiceData || []);
+      setRecentActivity(activityData || []);
+    };
+
+    fetchData();
+  }, [user]);
+
+  const totalRevenue = useMemo(
+    () =>
+      invoices
+        .filter((inv) => inv.status === "Paid")
+        .reduce((sum, inv) => sum + Number(inv.amount), 0),
+    [invoices]
   );
 
+  const summaryCards = [
+    {
+      title: "Total Clients",
+      value: clients.length,
+      icon: Users,
+      color: "bg-blue-500",
+      change: "+2 this month",
+    },
+    {
+      title: "Active Projects",
+      value: projects.filter((p) => p.status !== "Completed").length,
+      icon: FolderOpen,
+      color: "bg-green-500",
+      change: "+1 this week",
+    },
+    {
+      title: "Total Invoices",
+      value: invoices.length,
+      icon: Receipt,
+      color: "bg-purple-500",
+      change: "+3 this month",
+    },
+    {
+      title: "Revenue (Paid)",
+      value: `$${totalRevenue.toLocaleString()}`,
+      icon: TrendingUp,
+      color: "bg-yellow-500",
+      change: "+$1,200 this month",
+    },
+  ];
+
+  const generateAISummary = async () => {
+    setLoadingSummary(true);
+    setSummary("");
+    setSummaryError("");
+
+    try {
+      const response = await fetch(
+        "https://api-generate-summary.vercel.app/api/generate-summary",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projects }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Failed to generate summary");
+      setSummary(data.summary);
+    } catch (err: any) {
+      setSummaryError(err.message);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
   return (
-    <div className="space-y-6 bg-white text-black dark:bg-gray-900 dark:text-white min-h-screen transition-colors">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Welcome back, {user?.firstName || user?.username || "Guest"}!
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          Here's what's happening with your business today.
-        </p>
-      </div>
+    <div className="space-y-6 bg-white dark:bg-gray-900 text-black dark:text-white min-h-screen p-6 transition-colors">
+      <h1 className="text-2xl font-bold">
+        Welcome back, {user?.firstName || "Guest"}!
+      </h1>
+      <p className="text-gray-600 dark:text-gray-300">
+        Here's your business overview.
+      </p>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryCards.map((card, index) => {
+        {summaryCards.map((card, idx) => {
           const Icon = card.icon;
           return (
             <div
-              key={index}
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors"
+              key={idx}
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-2 rounded-lg ${card.color}`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                  {card.title}
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {card.value}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {card.change}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                {card.title}
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {card.value}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {card.change}
+              </p>
             </div>
           );
         })}
       </div>
 
+      {/* AI Summary Button + Result */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+        <button
+          onClick={generateAISummary}
+          disabled={loadingSummary}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+        >
+          <Sparkles className="w-4 h-4" />
+          {loadingSummary ? "Generating..." : "Generate AI Summary"}
+        </button>
+
+        {summary && (
+          <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line">
+            {summary}
+          </div>
+        )}
+
+        {summaryError && (
+          <div className="text-red-500 text-sm">❌ {summaryError}</div>
+        )}
+      </div>
+
       {/* Recent Activity */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Recent Activity
-          </h2>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+        <ul className="space-y-4">
+          {recentActivity.length === 0 ? (
+            <li className="text-gray-500">No recent activity yet.</li>
+          ) : (
+            recentActivity.map((act, i) => (
+              <li key={i} className="flex items-center space-x-3">
                 <div
-                  className={`w-2 h-2 rounded-full mt-2 ${
-                    activity.type === "invoice"
-                      ? "bg-blue-500"
-                      : activity.type === "file"
+                  className={`w-2 h-2 rounded-full mt-1 ${
+                    act.status === "Paid"
                       ? "bg-green-500"
-                      : activity.type === "client"
-                      ? "bg-purple-500"
-                      : activity.type === "payment"
+                      : act.status === "Overdue"
+                      ? "bg-red-500"
+                      : act.status === "Pending"
                       ? "bg-yellow-500"
                       : "bg-gray-500"
                   }`}
                 />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900 dark:text-white">
-                    {activity.action}
+                <div className="text-sm">
+                  <p>
+                    Invoice {act.id} marked as {act.status}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {activity.time}
+                    {new Date(act.updated_at).toLocaleString()}
                   </p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              </li>
+            ))
+          )}
+        </ul>
       </div>
     </div>
   );
