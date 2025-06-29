@@ -134,24 +134,55 @@ const Files = () => {
   };
   
 
-  const uploadFileToSupabase = async (file: File): Promise<string> => {
-    const supabase = await getClient();
-    const filePath = `${user?.id}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type || "application/octet-stream",
-      });
+ const uploadFileToSupabase = async (file: File): Promise<string> => {
+  const supabase = await getClient();
 
-    if (error) {
-      console.error("Upload error", error);
-      throw error;
-    }
+  if (!file || file.size === 0) {
+    console.error("File is empty or undefined.");
+    throw new Error("File is empty.");
+  }
 
-    return filePath;
-  };
+  const userId = user?.id;
+  if (!userId) {
+    console.error("User is not authenticated.");
+    throw new Error("User not authenticated.");
+  }
+
+  const sanitizedFileName = file.name
+  .replace(/[^\w.-]/g, "_"); // Replace spaces and special characters with underscores
+
+const filePath = `${user?.id}/${Date.now()}_${sanitizedFileName}`;
+
+  const contentType = file.type || "application/octet-stream";
+
+  console.log("Attempting upload:", {
+    filePath,
+    name: file.name,
+    size: file.size,
+    contentType,
+    userId,
+  });
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: contentType,
+    });
+
+  if (error) {
+    console.error("❌ Supabase Upload Error:");
+    console.error("Message:", error.message);
+    console.error("Details:", error.details);
+    console.error("Hint:", error.hint);
+    throw error;
+  }
+
+  console.log("✅ Upload succeeded:", data);
+  return filePath;
+};
+
 
   const getFileUrl = (path: string) =>
     `${
