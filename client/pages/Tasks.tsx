@@ -515,6 +515,12 @@ export default function Tasks() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <AddTaskModal
+        open={showAddTask}
+        onOpenChange={setShowAddTask}
+        onSubmit={handleCreateTask}
+      />
     </div>
   );
 }
