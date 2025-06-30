@@ -1,11 +1,31 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AddProjectModal,
+  ProjectFormData,
+} from "@/components/workspace/add-project-modal";
 import { Plus, Calendar, Users, DollarSign } from "lucide-react";
 
 export default function Projects() {
+  const [showAddProject, setShowAddProject] = useState(false);
+  const { toast } = useToast();
+
+  const handleCreateProject = async (projectData: ProjectFormData) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    toast({
+      title: "Project Created",
+      description: `${projectData.name} has been created successfully.`,
+    });
+
+    console.log("Created project:", projectData);
+  };
   const projects = [
     {
       id: 1,
