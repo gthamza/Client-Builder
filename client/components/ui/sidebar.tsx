@@ -42,7 +42,11 @@ const navigation = [
   { name: "Settings", icon: Settings, key: "settings" },
 ];
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({
+  className,
+  activeSection,
+  onSectionChange,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
   const { toast } = useToast();
@@ -60,8 +64,10 @@ export function Sidebar({ className }: SidebarProps) {
   };
 
   const handleNavClick = (item: any) => {
-    if (item.isAction && item.name === "Add Project") {
+    if (item.isAction && item.key === "add-project") {
       setShowAddProject(true);
+    } else {
+      onSectionChange(item.key);
     }
   };
 
