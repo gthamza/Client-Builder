@@ -10,6 +10,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./button";
+import {
+  AddProjectModal,
+  ProjectFormData,
+} from "@/components/workspace/add-project-modal";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   className?: string;
@@ -18,12 +23,32 @@ interface SidebarProps {
 const navigation = [
   { name: "Dashboard", icon: LayoutDashboard, href: "#", active: false },
   { name: "Workspace", icon: FolderKanban, href: "#", active: true },
-  { name: "Add Project", icon: Plus, href: "#", active: false },
+  { name: "Add Project", icon: Plus, href: "#", active: false, isAction: true },
   { name: "Settings", icon: Settings, href: "#", active: false },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [showAddProject, setShowAddProject] = useState(false);
+  const { toast } = useToast();
+
+  const handleCreateProject = async (projectData: ProjectFormData) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    toast({
+      title: "Project Created",
+      description: `${projectData.name} has been created successfully.`,
+    });
+
+    console.log("Created project:", projectData);
+  };
+
+  const handleNavClick = (item: any) => {
+    if (item.isAction && item.name === "Add Project") {
+      setShowAddProject(true);
+    }
+  };
 
   return (
     <div
