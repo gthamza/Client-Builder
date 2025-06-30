@@ -87,29 +87,29 @@ export function Sidebar({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
-        {!collapsed && (
-          <div className="flex items-center gap-x-2">
-            <div className="w-9 h-9 bg-primary rounded-md flex items-center justify-center">
-              <FolderKanban className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-lg select-none">ClientHub</span>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-sidebar-foreground hover:bg-sidebar-accent p-1 h-8 w-8"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <ChevronRight
-            className={cn(
-              "w-4 h-4 transition-transform",
-              collapsed ? "rotate-0" : "rotate-180"
-            )}
-          />
-        </Button>
+  {!collapsed && (
+    <div className="flex items-center gap-x-2">
+      <div className="w-9 h-9 bg-primary rounded-md flex items-center justify-center">
+        <FolderKanban className="w-5 h-5 text-primary-foreground" />
       </div>
+      <span className="font-semibold text-lg select-none">ClientHub</span>
+    </div>
+  )}
+  <Button
+    variant="ghost"
+    size="icon"
+    className="text-sidebar-foreground hover:bg-sidebar-accent p-1 h-8 w-8"
+    onClick={() => setCollapsed(!collapsed)}
+    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+  >
+    <ChevronRight
+      className={cn(
+        "w-4 h-4 transition-transform",
+        collapsed ? "rotate-0" : "rotate-180"
+      )}
+    />
+  </Button>
+</div>
 
       {/* Navigation - scrollable */}
       <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
