@@ -164,6 +164,12 @@ export default function Clients() {
           </Card>
         ))}
       </div>
+
+      <AddClientModal
+        open={showAddClient}
+        onOpenChange={setShowAddClient}
+        onSubmit={handleCreateClient}
+      />
     </div>
   );
 }
