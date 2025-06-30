@@ -67,6 +67,9 @@ export function Navbar() {
           </span>
         </Button>
 
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         {/* Help */}
         <Button variant="ghost" size="sm">
           <HelpCircle className="h-4 w-4" />
