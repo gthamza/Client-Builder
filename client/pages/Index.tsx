@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/ui/sidebar";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
 import { WorkspaceTabs } from "@/components/workspace/workspace-tabs";
 
@@ -18,6 +19,9 @@ export default function Index() {
           <WorkspaceTabs />
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <FloatingActionButton />
     </div>
   );
 }
