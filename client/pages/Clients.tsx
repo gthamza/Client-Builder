@@ -70,7 +70,10 @@ export default function Clients() {
             Manage your client relationships and contacts
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary-600">
+        <Button
+          className="bg-primary hover:bg-primary-600"
+          onClick={() => setShowAddClient(true)}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Client
         </Button>
