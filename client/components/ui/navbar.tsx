@@ -24,25 +24,15 @@ import { Input } from "@/components/ui/input";
 export function Navbar() {
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between">
-      {/* Left Side - User Profile */}
+      {/* Left Side - Logo/Brand */}
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-3">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src="/api/placeholder/36/36" alt="John Doe" />
-            <AvatarFallback className="bg-primary-100 text-primary-700">
-              JD
-            </AvatarFallback>
-          </Avatar>
-          <div className="hidden sm:block">
-            <div className="text-sm font-medium text-foreground">John Doe</div>
-            <div className="text-xs text-muted-foreground">Project Manager</div>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <FolderKanban className="w-5 h-5 text-primary-foreground" />
           </div>
-        </div>
-
-        <div className="hidden md:block">
-          <Badge variant="secondary" className="bg-success/10 text-success">
-            Online
-          </Badge>
+          <span className="font-semibold text-lg hidden sm:block">
+            ClientHub
+          </span>
         </div>
       </div>
 
