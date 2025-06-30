@@ -7,6 +7,12 @@ import {
   User,
   LogOut,
   ChevronRight,
+  CheckSquare,
+  Users,
+  Upload,
+  Receipt,
+  MessageSquare,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./button";
@@ -18,13 +24,22 @@ import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   className?: string;
+  activeSection: string;
+  onSectionChange: (section: string) => void;
 }
 
 const navigation = [
-  { name: "Dashboard", icon: LayoutDashboard, href: "#", active: false },
-  { name: "Workspace", icon: FolderKanban, href: "#", active: true },
-  { name: "Add Project", icon: Plus, href: "#", active: false, isAction: true },
-  { name: "Settings", icon: Settings, href: "#", active: false },
+  { name: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
+  { name: "Workspace", icon: FolderKanban, key: "workspace" },
+  { name: "Tasks", icon: CheckSquare, key: "tasks" },
+  { name: "Projects", icon: FolderKanban, key: "projects" },
+  { name: "Clients", icon: Users, key: "clients" },
+  { name: "Files", icon: Upload, key: "files" },
+  { name: "Invoices", icon: Receipt, key: "invoices" },
+  { name: "Chat", icon: MessageSquare, key: "chat" },
+  { name: "Analytics", icon: BarChart3, key: "analytics" },
+  { name: "Add Project", icon: Plus, key: "add-project", isAction: true },
+  { name: "Settings", icon: Settings, key: "settings" },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
