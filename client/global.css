@@ -79,41 +79,70 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 84% 5%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 217 32% 17%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 217 32% 17%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    /* Dark mode primary - keep same indigo but adjust brightness */
+    --primary: 229 84% 60%;
     --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-50: 232 47% 31%;
+    --primary-100: 231 56% 37%;
+    --primary-200: 230 69% 45%;
+    --primary-300: 229 76% 54%;
+    --primary-400: 229 84% 60%;
+    --primary-500: 229 76% 66%;
+    --primary-600: 230 78% 74%;
+    --primary-700: 233 87% 84%;
+    --primary-800: 235 94% 92%;
+    --primary-900: 238 100% 97%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Dark mode accent - keep teal but adjust for dark theme */
+    --accent: 174 78% 65%;
+    --accent-foreground: 222 84% 5%;
+    --accent-50: 179 43% 31%;
+    --accent-100: 178 60% 38%;
+    --accent-200: 177 70% 46%;
+    --accent-300: 175 84% 57%;
+    --accent-400: 174 78% 65%;
+    --accent-500: 172 85% 57%;
+    --accent-600: 171 77% 64%;
+    --accent-700: 168 73% 76%;
+    --accent-800: 167 76% 87%;
+    --accent-900: 166 82% 95%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 142 71% 45%;
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 84% 5%;
+
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 229 84% 60%;
+
+    --sidebar-background: 222 84% 5%;
+    --sidebar-foreground: 213 27% 84%;
+    --sidebar-primary: 229 84% 60%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 217 32% 17%;
+    --sidebar-accent-foreground: 213 27% 84%;
+    --sidebar-border: 217 32% 17%;
+    --sidebar-ring: 229 84% 60%;
   }
 }
 
