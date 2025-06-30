@@ -18,6 +18,7 @@ import {
   User,
   HelpCircle,
   ChevronDown,
+  FolderKanban,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
