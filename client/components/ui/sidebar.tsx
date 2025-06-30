@@ -88,11 +88,11 @@ export function Sidebar({ className }: SidebarProps) {
         {navigation.map((item) => {
           const Icon = item.icon;
           return (
-            <a
+            <button
               key={item.name}
-              href={item.href}
+              onClick={() => handleNavClick(item)}
               className={cn(
-                "flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                "flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left",
                 item.active
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -101,7 +101,7 @@ export function Sidebar({ className }: SidebarProps) {
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
               {!collapsed && <span>{item.name}</span>}
-            </a>
+            </button>
           );
         })}
       </nav>
