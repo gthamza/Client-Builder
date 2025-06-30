@@ -1,10 +1,30 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AddClientModal,
+  ClientFormData,
+} from "@/components/modals/add-client-modal";
 import { Plus, Building2, Mail, Phone, MapPin } from "lucide-react";
 
 export default function Clients() {
+  const [showAddClient, setShowAddClient] = useState(false);
+  const { toast } = useToast();
+
+  const handleCreateClient = async (clientData: ClientFormData) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    toast({
+      title: "Client Added",
+      description: `${clientData.name} has been added successfully.`,
+    });
+
+    console.log("Created client:", clientData);
+  };
   const clients = [
     {
       id: 1,
