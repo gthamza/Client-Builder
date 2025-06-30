@@ -75,7 +75,7 @@ export function Sidebar({
     <div
       className={cn(
         "flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300",
-        collapsed ? "w-16" : "w-64",
+        collapsed ? "w-16" : "w-80",
         className,
       )}
     >
