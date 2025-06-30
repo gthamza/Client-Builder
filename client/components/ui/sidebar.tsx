@@ -139,6 +139,12 @@ export function Sidebar({ className }: SidebarProps) {
           </Button>
         )}
       </div>
+
+      <AddProjectModal
+        open={showAddProject}
+        onOpenChange={setShowAddProject}
+        onSubmit={handleCreateProject}
+      />
     </div>
   );
 }
