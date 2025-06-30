@@ -22,6 +22,20 @@ import {
 export default function Tasks() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedView, setSelectedView] = useState("list");
+  const [showAddTask, setShowAddTask] = useState(false);
+  const { toast } = useToast();
+
+  const handleCreateTask = async (taskData: TaskFormData) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    toast({
+      title: "Task Created",
+      description: `${taskData.title} has been created successfully.`,
+    });
+
+    console.log("Created task:", taskData);
+  };
 
   const tasks = [
     {
