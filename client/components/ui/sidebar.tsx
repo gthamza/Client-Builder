@@ -108,13 +108,14 @@ export function Sidebar({
       <nav className="flex-1 p-4 space-y-2">
         {navigation.map((item) => {
           const Icon = item.icon;
+          const isActive = activeSection === item.key;
           return (
             <button
-              key={item.name}
+              key={item.key}
               onClick={() => handleNavClick(item)}
               className={cn(
                 "flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left",
-                item.active
+                isActive
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 collapsed && "justify-center space-x-0",
