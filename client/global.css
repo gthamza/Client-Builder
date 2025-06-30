@@ -9,73 +9,73 @@
    * A different format will require also updating the theme in tailwind.config.ts.
   */
   :root {
-    --background: 0 0% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 15%;
 
-    /* Modern Indigo/Blue Primary Palette */
-    --primary: 229 84% 60%;
-    --primary-foreground: 210 40% 98%;
-    --primary-50: 238 100% 97%;
-    --primary-100: 235 94% 92%;
-    --primary-200: 233 87% 84%;
-    --primary-300: 230 78% 74%;
-    --primary-400: 229 76% 66%;
-    --primary-500: 229 84% 60%;
-    --primary-600: 229 76% 54%;
-    --primary-700: 230 69% 45%;
-    --primary-800: 231 56% 37%;
-    --primary-900: 232 47% 31%;
+    /* Primary Blue #0441f4 Color Palette */
+    --primary: 225 96% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-50: 225 100% 97%;
+    --primary-100: 225 100% 94%;
+    --primary-200: 225 100% 87%;
+    --primary-300: 225 100% 80%;
+    --primary-400: 225 98% 70%;
+    --primary-500: 225 96% 60%;
+    --primary-600: 225 96% 50%;
+    --primary-700: 225 96% 40%;
+    --primary-800: 225 96% 30%;
+    --primary-900: 225 96% 20%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    /* Teal/Purple Accent Palette */
-    --accent: 174 78% 65%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --accent-50: 166 82% 95%;
-    --accent-100: 167 76% 87%;
-    --accent-200: 168 73% 76%;
-    --accent-300: 171 77% 64%;
-    --accent-400: 172 85% 57%;
-    --accent-500: 174 78% 65%;
-    --accent-600: 175 84% 57%;
-    --accent-700: 177 70% 46%;
-    --accent-800: 178 60% 38%;
-    --accent-900: 179 43% 31%;
+    /* Accent colors - keeping neutral */
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 15%;
+    --accent-50: 0 0% 98%;
+    --accent-100: 0 0% 96%;
+    --accent-200: 0 0% 93%;
+    --accent-300: 0 0% 87%;
+    --accent-400: 0 0% 80%;
+    --accent-500: 0 0% 70%;
+    --accent-600: 0 0% 60%;
+    --accent-700: 0 0% 45%;
+    --accent-800: 0 0% 30%;
+    --accent-900: 0 0% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 71% 45%;
-    --success-foreground: 210 40% 98%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 222.2 84% 4.9%;
+    --warning-foreground: 0 0% 15%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 229 84% 60%;
+    --border: 0 0% 91%;
+    --input: 0 0% 91%;
+    --ring: 225 96% 60%;
 
     --radius: 0.75rem;
 
-    /* Dark sidebar theme */
-    --sidebar-background: 222 84% 5%;
-    --sidebar-foreground: 213 27% 84%;
-    --sidebar-primary: 229 84% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217 32% 17%;
-    --sidebar-accent-foreground: 213 27% 84%;
-    --sidebar-border: 217 32% 17%;
-    --sidebar-ring: 229 84% 60%;
+    /* Light sidebar theme */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 225 96% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 15%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 225 96% 60%;
   }
 
   .dark {
