@@ -91,7 +91,10 @@ export default function Projects() {
             Overview of all your active and completed projects
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary-600">
+        <Button
+          className="bg-primary hover:bg-primary-600"
+          onClick={() => setShowAddProject(true)}
+        >
           <Plus className="w-4 h-4 mr-2" />
           New Project
         </Button>
