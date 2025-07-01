@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
+} from "../../components/ui/dropdown-menu";
+import { useToast } from "../../hooks/use-toast";
 import {
   Plus,
   FileText,
@@ -15,11 +15,11 @@ import {
   Receipt,
   FolderPlus,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import {
   AddProjectModal,
   ProjectFormData,
-} from "@/components/workspace/add-project-modal";
+} from "../../components/workspace/add-project-modal";
 
 interface FloatingActionButtonProps {
   className?: string;
