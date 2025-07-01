@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { InvoicesTab } from "@/components/workspace/tab-content/invoices-tab";
+import { Button } from "./../components/ui/button";
+import { useToast } from "./../hooks/use-toast";
+import { InvoicesTab } from "./../components/workspace/tab-content/invoices-tab";
 import {
   AddInvoiceModal,
   InvoiceFormData,
-} from "@/components/modals/add-invoice-modal";
+} from "./../components/modals/add-invoice-modal";
 import { Plus } from "lucide-react";
 
 export default function Invoices() {

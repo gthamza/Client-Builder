@@ -1,4 +1,4 @@
-import { AnalyticsTab } from "@/components/workspace/tab-content/analytics-tab";
+import { AnalyticsTab } from "./../components/workspace/tab-content/analytics-tab";
 
 export default function Analytics() {
   return (

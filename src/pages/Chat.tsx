@@ -1,4 +1,4 @@
-import { ChatTab } from "@/components/workspace/tab-content/chat-tab";
+import { ChatTab } from "./../components/workspace/tab-content/chat-tab";
 
 export default function Chat() {
   return (
