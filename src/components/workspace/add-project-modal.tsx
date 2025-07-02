@@ -30,10 +30,14 @@ import { cn } from "../../lib/utils";
 interface AddProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (projectData: ProjectFormData) => void;
+  onSubmit: (projectData: ProjectFormData & { id?: number }) => void;
+  initialData?: ProjectFormData & { id?: number };
 }
 
+
+
 export interface ProjectFormData {
+  progress: number;
   name: string;
   description: string;
   client: string;
@@ -53,10 +57,11 @@ export function AddProjectModal({
     name: "",
     description: "",
     client: "",
-    status: "planning",
+    status: "Not Started",
     deadline: undefined,
     budget: "",
     priority: "medium",
+    progress: 0,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,15 +71,15 @@ export function AddProjectModal({
     setIsLoading(true);
     try {
       await onSubmit(formData);
-      // Reset form
       setFormData({
         name: "",
         description: "",
         client: "",
-        status: "planning",
+        status: "Not Started",
         deadline: undefined,
         budget: "",
         priority: "medium",
+        progress: 0,
       });
       onOpenChange(false);
     } catch (error) {
@@ -146,13 +151,13 @@ export function AddProjectModal({
                 onValueChange={(value) => handleInputChange("status", value)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="planning">Planning</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Review">Review</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -164,7 +169,7 @@ export function AddProjectModal({
                 onValueChange={(value) => handleInputChange("priority", value)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
@@ -176,6 +181,25 @@ export function AddProjectModal({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="progress">Progress (%)</Label>
+            <Input
+              id="progress"
+              type="number"
+              min={0}
+              max={100}
+              placeholder="E.g., 20"
+              value={formData.progress ?? 0}
+              onChange={(e) =>
+                handleInputChange(
+                  "progress",
+                  Math.max(0, Math.min(100, Number(e.target.value)))
+                )
+              }
+              required
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Deadline</Label>
@@ -185,7 +209,7 @@ export function AddProjectModal({
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !formData.deadline && "text-muted-foreground",
+                      !formData.deadline && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
