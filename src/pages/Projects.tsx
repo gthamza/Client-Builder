@@ -327,7 +327,6 @@ export default function Projects() {
                   <span className="font-medium">{project.deadline}</span>
                 </div>
               </div>
-
             </CardContent>
           </Card>
         ))}
@@ -338,6 +337,7 @@ export default function Projects() {
         open={showAddProject}
         onOpenChange={setShowAddProject}
         onSubmit={handleSaveProject}
+        initialData={selectedProject}
       />
     </div>
   );

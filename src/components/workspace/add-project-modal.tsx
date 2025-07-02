@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,15 +27,6 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "../../lib/utils";
 
-interface AddProjectModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (projectData: ProjectFormData & { id?: number }) => void;
-  initialData?: ProjectFormData & { id?: number };
-}
-
-
-
 export interface ProjectFormData {
   progress: number;
   name: string;
@@ -47,10 +38,18 @@ export interface ProjectFormData {
   priority: string;
 }
 
+interface AddProjectModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (projectData: ProjectFormData & { id?: number }) => void;
+  initialData?: (ProjectFormData & { id?: number }) | null;
+}
+
 export function AddProjectModal({
   open,
   onOpenChange,
   onSubmit,
+  initialData,
 }: AddProjectModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<ProjectFormData>({
@@ -64,26 +63,36 @@ export function AddProjectModal({
     progress: 0,
   });
 
+  useEffect(() => {
+    if (open) {
+      setFormData(
+        initialData ?? {
+          name: "",
+          description: "",
+          client: "",
+          status: "Not Started",
+          deadline: undefined,
+          budget: "",
+          priority: "medium",
+          progress: 0,
+        }
+      );
+    }
+  }, [open, initialData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.client) return;
 
     setIsLoading(true);
     try {
-      await onSubmit(formData);
-      setFormData({
-        name: "",
-        description: "",
-        client: "",
-        status: "Not Started",
-        deadline: undefined,
-        budget: "",
-        priority: "medium",
-        progress: 0,
+      await onSubmit({
+        ...formData,
+        id: initialData?.id,
       });
       onOpenChange(false);
     } catch (error) {
-      console.error("Error creating project:", error);
+      console.error("Error saving project:", error);
     } finally {
       setIsLoading(false);
     }
@@ -100,22 +109,26 @@ export function AddProjectModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle>
+            {initialData?.id ? "Edit Project" : "Create New Project"}
+          </DialogTitle>
           <DialogDescription>
-            Add a new project to your workspace. Fill in the details below to
-            get started.
+            {initialData?.id
+              ? "Update your project details below."
+              : "Add a new project to your workspace."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Name & Client */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Project Name *</Label>
               <Input
                 id="name"
-                placeholder="E.g., Website Redesign"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="E.g., Website Redesign"
                 required
               />
             </div>
@@ -124,25 +137,27 @@ export function AddProjectModal({
               <Label htmlFor="client">Client *</Label>
               <Input
                 id="client"
-                placeholder="E.g., TechCorp Inc."
                 value={formData.client}
                 onChange={(e) => handleInputChange("client", e.target.value)}
+                placeholder="E.g., TechCorp Inc."
                 required
               />
             </div>
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              placeholder="Brief description of the project..."
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
+              placeholder="Brief description of the project..."
               rows={3}
             />
           </div>
 
+          {/* Status & Priority */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Status</Label>
@@ -181,6 +196,7 @@ export function AddProjectModal({
             </div>
           </div>
 
+          {/* Progress */}
           <div className="space-y-2">
             <Label htmlFor="progress">Progress (%)</Label>
             <Input
@@ -188,18 +204,19 @@ export function AddProjectModal({
               type="number"
               min={0}
               max={100}
-              placeholder="E.g., 20"
-              value={formData.progress ?? 0}
+              value={formData.progress}
               onChange={(e) =>
                 handleInputChange(
                   "progress",
                   Math.max(0, Math.min(100, Number(e.target.value)))
                 )
               }
+              placeholder="E.g., 20"
               required
             />
           </div>
 
+          {/* Deadline & Budget */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Deadline</Label>
@@ -235,13 +252,14 @@ export function AddProjectModal({
               <Label htmlFor="budget">Budget (Optional)</Label>
               <Input
                 id="budget"
-                placeholder="E.g., $5,000"
                 value={formData.budget}
                 onChange={(e) => handleInputChange("budget", e.target.value)}
+                placeholder="E.g., $5,000"
               />
             </div>
           </div>
 
+          {/* Footer Buttons */}
           <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
@@ -256,7 +274,7 @@ export function AddProjectModal({
               disabled={isLoading || !formData.name || !formData.client}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Project
+              {initialData?.id ? "Update Project" : "Create Project"}
             </Button>
           </div>
         </form>
