@@ -136,21 +136,20 @@ export function AddFileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-full max-w-[400px] max-h-[90vh] overflow-y-auto px-4 py-3">
         <DialogHeader>
-          <DialogTitle>Upload File</DialogTitle>
-          <DialogDescription>
-            Upload a new file to your project. Add details and categorize for
-            easy organization.
+          <DialogTitle className="text-base">Upload File</DialogTitle>
+          <DialogDescription className="text-sm">
+            Upload a new file and categorize it for easy access.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Upload Area */}
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* File Upload */}
+          <div className="space-y-1">
             <Label>File Upload *</Label>
             <div
-              className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+              className={`border-2 border-dashed rounded-md p-2 text-center transition-colors text-sm ${
                 dragActive
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"
@@ -161,10 +160,8 @@ export function AddFileModal({
               onDrop={handleDrop}
             >
               {formData.file ? (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">
-                    {formData.file.name}
-                  </div>
+                <div className="space-y-1">
+                  <div className="font-medium">{formData.file.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {(formData.file.size / 1024 / 1024).toFixed(2)} MB
                   </div>
@@ -179,9 +176,9 @@ export function AddFileModal({
                 </div>
               ) : (
                 <>
-                  <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Drag and drop a file here, or click to browse
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Drag & drop or click to upload
                   </p>
                   <input
                     type="file"
@@ -195,6 +192,7 @@ export function AddFileModal({
                   />
                   <Button
                     type="button"
+                    size="sm"
                     variant="outline"
                     onClick={() =>
                       document.getElementById("file-input")?.click()
@@ -207,37 +205,37 @@ export function AddFileModal({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="name">File Name *</Label>
             <Input
               id="name"
-              placeholder="E.g., Wireframes v2"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               required
+              placeholder="e.g., UI Mockups"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              placeholder="Describe what this file contains..."
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
-              rows={3}
+              className="h-16"
+              placeholder="Describe the file..."
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
               <Label>Project</Label>
               <Select
                 value={formData.project}
                 onValueChange={(value) => handleInputChange("project", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select project" />
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ecommerce-redesign">
@@ -251,7 +249,7 @@ export function AddFileModal({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label>Category</Label>
               <Select
                 value={formData.category}
@@ -273,25 +271,30 @@ export function AddFileModal({
           </div>
 
           {/* Tags */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>Tags</Label>
-            <div className="flex space-x-2">
+            <div className="flex gap-2">
               <Input
-                placeholder="Add a tag..."
+                placeholder="Add tag"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={handleKeyPress}
               />
-              <Button type="button" variant="outline" onClick={addTag}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addTag}
+              >
                 Add
               </Button>
             </div>
             {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.tags.map((tag, index) => (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {formData.tags.map((tag, i) => (
                   <div
-                    key={index}
-                    className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm flex items-center space-x-1"
+                    key={i}
+                    className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm flex items-center gap-1"
                   >
                     <span>{tag}</span>
                     <button
@@ -307,18 +310,21 @@ export function AddFileModal({
             )}
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              size="sm"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isLoading || !formData.name || !formData.file}
+              size="sm"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Upload File

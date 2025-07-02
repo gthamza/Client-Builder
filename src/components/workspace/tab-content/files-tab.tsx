@@ -1,7 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
+import { Badge } from "../../ui/badge";
 import {
   Upload,
   Search,
@@ -11,8 +12,11 @@ import {
   Download,
   MoreHorizontal,
 } from "lucide-react";
+import { AddFileModal, FileFormData } from "../../modals/add-file-modal"; // Adjust import path if needed
 
 export function FilesTab() {
+  const [isAddFileModalOpen, setIsAddFileModalOpen] = useState(false);
+
   const files = [
     {
       name: "Wireframes_v2.pdf",
@@ -75,7 +79,10 @@ export function FilesTab() {
             <p className="text-muted-foreground mb-4">
               Drag and drop files here, or click to browse
             </p>
-            <Button className="bg-primary hover:bg-primary-600">
+            <Button
+              className="bg-primary hover:bg-primary-600"
+              onClick={() => setIsAddFileModalOpen(true)}
+            >
               <Upload className="w-4 h-4 mr-2" />
               Choose Files
             </Button>
@@ -175,6 +182,17 @@ export function FilesTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add File Modal */}
+      <AddFileModal
+        open={isAddFileModalOpen}
+        onOpenChange={setIsAddFileModalOpen}
+        onSubmit={(data: FileFormData) => {
+          console.log("Uploaded:", data);
+          // TODO: Save to backend or local state
+          setIsAddFileModalOpen(false);
+        }}
+      />
     </div>
   );
 }

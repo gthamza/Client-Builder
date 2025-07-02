@@ -1,15 +1,20 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Progress } from "../components/ui/progress";
-import { useToast } from "./../hooks/use-toast";
+import { useToast } from "../hooks/use-toast";
 import {
   AddProjectModal,
   ProjectFormData,
-} from "./../components/workspace/add-project-modal";
-import { Plus, Calendar, Users, DollarSign } from "lucide-react";
+} from "../components/workspace/add-project-modal";
+import { Plus, Calendar, Users, DollarSign, Trash2, Pencil } from "lucide-react";
 
 export default function Projects() {
   const [showAddProject, setShowAddProject] = useState(false);
@@ -26,6 +31,7 @@ export default function Projects() {
 
     console.log("Created project:", projectData);
   };
+
   const projects = [
     {
       id: 1,
@@ -82,8 +88,17 @@ export default function Projects() {
     }
   };
 
+  function handleDelete(id: number): void {
+    throw new Error("Function not implemented.");
+  }
+
+  function handleEdit(project: { id: number; name: string; client: string; description: string; progress: number; status: string; budget: string; deadline: string; team: { name: string; initials: string; }[]; }): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
@@ -128,7 +143,7 @@ export default function Projects() {
         </Card>
       </div>
 
-      {/* Projects Grid */}
+      {/* Projects List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {projects.map((project) => (
           <Card
@@ -136,16 +151,46 @@ export default function Projects() {
             className="shadow-sm hover:shadow-md transition-shadow"
           >
             <CardHeader className="pb-3">
+              {" "}
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{project.name}</CardTitle>
+                {" "}
+                <CardTitle className="text-lg">{project.name}</CardTitle>{" "}
                 <Badge
                   variant="secondary"
                   className={getStatusColor(project.status)}
                 >
-                  {project.status}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{project.client}</p>
+                  {" "}
+                  {project.status}{" "}
+                </Badge>{" "}
+              </div>{" "}
+              <div className="flex items-center justify-between mt-1">
+                {" "}
+                <p className="text-sm text-muted-foreground">
+                  {" "}
+                  {project.client || "No Client"}{" "}
+                </p>{" "}
+                <div className="flex space-x-2">
+                  {" "}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-muted-foreground  text-blue-600 p-1"
+                    onClick={() => handleEdit(project)}
+                  >
+                    {" "}
+                    <Pencil className="w-4 h-4" />{" "}
+                  </Button>{" "}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-muted-foreground  text-red-600 p-1"
+                    onClick={() => handleDelete(project.id)}
+                  >
+                    {" "}
+                    <Trash2 className="w-4 h-4" />{" "}
+                  </Button>{" "}
+                </div>{" "}
+              </div>{" "}
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -161,7 +206,7 @@ export default function Projects() {
                 <Progress value={project.progress} className="h-2" />
               </div>
 
-              {/* Project Details */}
+              {/* Budget & Deadline */}
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
@@ -170,7 +215,6 @@ export default function Projects() {
                   </div>
                   <span className="font-medium">{project.budget}</span>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
@@ -204,6 +248,13 @@ export default function Projects() {
           </Card>
         ))}
       </div>
+
+      {/* ✅ Add Project Modal */}
+      <AddProjectModal
+        open={showAddProject}
+        onOpenChange={setShowAddProject}
+        onSubmit={handleCreateProject}
+      />
     </div>
   );
 }

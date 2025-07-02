@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+} from "../../components/ui/select";
+import { useToast } from "../../hooks/use-toast";
 import { ChevronDown, Plus } from "lucide-react";
 import {
   AddProjectModal,
   ProjectFormData,
-} from "@/components/workspace/add-project-modal";
+} from "../../components/workspace/add-project-modal";
 
 export function WorkspaceHeader() {
   const [showAddProject, setShowAddProject] = useState(false);

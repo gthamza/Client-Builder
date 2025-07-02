@@ -19,8 +19,16 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Input } from "../ui/input";
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 export function Navbar() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  const fullName = user?.fullName || user?.firstName || "User";
+  const email = user?.emailAddresses?.[0]?.emailAddress || "";
+  const imageUrl = user?.imageUrl;
+
   return (
     <header className="h-16 bg-white dark:bg-[#121212] text-black dark:text-white border-b border-border px-6 flex items-center justify-between">
       {/* Left - Logo Placeholder */}
@@ -60,10 +68,18 @@ export function Navbar() {
               className="flex items-center space-x-2 text-white"
             >
               <Avatar className="h-6 w-6">
-                <AvatarImage src="/api/placeholder/24/24" alt="John Doe" />
-                <AvatarFallback className="bg-primary-100 text-primary-700 text-xs">
-                  JD
-                </AvatarFallback>
+                {imageUrl ? (
+                  <AvatarImage src={imageUrl} alt={fullName} />
+                ) : (
+                  <AvatarFallback className="bg-primary-100 text-primary-700 text-xs">
+                    {fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <ChevronDown className="h-3 w-3" />
             </Button>
@@ -71,10 +87,8 @@ export function Navbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div>
-                <div className="font-medium">John Doe</div>
-                <div className="text-xs text-muted-foreground">
-                  john.doe@company.com
-                </div>
+                <div className="font-medium">{fullName}</div>
+                <div className="text-xs text-muted-foreground">{email}</div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -91,7 +105,10 @@ export function Navbar() {
               Help & Support
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => signOut()}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Sign out
             </DropdownMenuItem>
