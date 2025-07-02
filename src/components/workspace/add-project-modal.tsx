@@ -10,6 +10,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
+import { Slider } from "../../components/ui/slider";
+
 import {
   Select,
   SelectContent,
@@ -99,11 +101,41 @@ export function AddProjectModal({
   };
 
   const handleInputChange = (field: keyof ProjectFormData, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      let updated = { ...prev, [field]: value };
+
+      // Smart progress change on status selection
+      if (field === "status") {
+        switch (value) {
+          case "Not Started":
+            updated.progress = 0;
+            break;
+          case "In Progress":
+            updated.progress =
+              prev.progress <= 0 ? 10 : prev.progress < 75 ? prev.progress : 50;
+            break;
+          case "Review":
+            updated.progress = prev.progress < 75 ? 75 : prev.progress;
+            break;
+          case "Completed":
+            updated.progress = 100;
+            break;
+        }
+      }
+
+      // Smart status change on progress update
+      if (field === "progress") {
+        const p = Number(value);
+        if (p === 0) updated.status = "Not Started";
+        else if (p > 0 && p < 75) updated.status = "In Progress";
+        else if (p >= 75 && p < 100) updated.status = "Review";
+        else if (p === 100) updated.status = "Completed";
+      }
+
+      return updated;
+    });
   };
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,22 +230,20 @@ export function AddProjectModal({
 
           {/* Progress */}
           <div className="space-y-2">
-            <Label htmlFor="progress">Progress (%)</Label>
-            <Input
-              id="progress"
-              type="number"
-              min={0}
-              max={100}
-              value={formData.progress}
-              onChange={(e) =>
-                handleInputChange(
-                  "progress",
-                  Math.max(0, Math.min(100, Number(e.target.value)))
-                )
-              }
-              placeholder="E.g., 20"
-              required
-            />
+            <Label>Progress</Label>
+            <div className="flex items-center space-x-4">
+              <Slider
+                value={[formData.progress]}
+                onValueChange={(val) => handleInputChange("progress", val[0])}
+                max={100}
+                min={0}
+                step={1}
+                className="w-full"
+              />
+              <span className="text-sm font-medium text-muted-foreground w-10 text-right">
+                {formData.progress}%
+              </span>
+            </div>
           </div>
 
           {/* Deadline & Budget */}
