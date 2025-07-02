@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Checkbox } from "../components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover";
 import { useToast } from "../hooks/use-toast";
 import { AddTaskModal, TaskFormData } from "../components/modals/add-task-modal";
 import {
@@ -17,27 +22,15 @@ import {
   Kanban,
   ChevronLeft,
   ChevronRight,
+  Edit,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 
-export default function Tasks() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedView, setSelectedView] = useState("list");
-  const [showAddTask, setShowAddTask] = useState(false);
-  const { toast } = useToast();
+const STORAGE_KEY = "clienthub-tasks";
 
-  const handleCreateTask = async (taskData: TaskFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast({
-      title: "Task Created",
-      description: `${taskData.title} has been created successfully.`,
-    });
-
-    console.log("Created task:", taskData);
-  };
-
-  const tasks = [
+const getInitialTasks = () => {
+  const defaultTasks = [
     {
       id: 1,
       title: "Complete wireframe designs",
@@ -93,7 +86,81 @@ export default function Tasks() {
       completed: false,
       column: "todo",
     },
+    {
+      id: 6,
+      title: "Client presentation prep",
+      description: "Prepare slides for client presentation",
+      assignee: { name: "Lisa Rodriguez", initials: "LR" },
+      priority: "High",
+      dueDate: `${new Date().getFullYear()}-${String(
+        new Date().getMonth() + 1
+      ).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
+      status: "Pending",
+      completed: false,
+      column: "todo",
+    },
   ];
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : defaultTasks;
+  } catch {
+    return defaultTasks;
+  }
+};
+
+export default function Tasks() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedView, setSelectedView] = useState("list");
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [draggedTask, setDraggedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [tasks, setTasks] = useState(getInitialTasks);
+  const { toast } = useToast();
+
+  // Save to localStorage whenever tasks change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }, [tasks]);
+
+  const handleCreateTask = async (taskData: TaskFormData) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const newTask = {
+      id: Date.now(),
+      title: taskData.title,
+      description: taskData.description,
+      assignee: {
+        name: taskData.assignee,
+        initials: taskData.assignee
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase(),
+      },
+      priority:
+        taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1),
+      dueDate: taskData.dueDate
+        ? taskData.dueDate.toISOString().split("T")[0]
+        : "",
+      status: taskData.status,
+      completed: false,
+      column:
+        taskData.status === "completed"
+          ? "done"
+          : taskData.status === "in-progress"
+          ? "in-progress"
+          : "todo",
+    };
+
+    setTasks((prev) => [...prev, newTask]);
+
+    toast({
+      title: "Task Created",
+      description: `${taskData.title} has been created successfully.`,
+    });
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -116,6 +183,88 @@ export default function Tasks() {
     });
   };
 
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, task: any) => {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, newColumn: string) => {
+    e.preventDefault();
+    if (draggedTask && draggedTask.column !== newColumn) {
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === draggedTask.id
+            ? {
+                ...task,
+                column: newColumn,
+                status: getStatusFromColumn(newColumn),
+              }
+            : task
+        )
+      );
+
+      toast({
+        title: "Task Moved",
+        description: `${draggedTask.title} moved to ${newColumn.replace(
+          "-",
+          " "
+        )}`,
+      });
+    }
+    setDraggedTask(null);
+  };
+
+  const getStatusFromColumn = (column: string) => {
+    switch (column) {
+      case "todo":
+        return "Pending";
+      case "in-progress":
+        return "In Progress";
+      case "done":
+        return "Completed";
+      default:
+        return "Pending";
+    }
+  };
+
+  // Task management
+  const handleEditTask = (task: any) => {
+    toast({
+      title: "Edit Task",
+      description: `Editing ${task.title}`,
+    });
+    console.log("Edit task:", task);
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    toast({
+      title: "Task Deleted",
+      description: "Task has been deleted successfully",
+    });
+  };
+
+  const handleToggleComplete = (taskId: number) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              completed: !task.completed,
+              status: !task.completed ? "Completed" : "Pending",
+              column: !task.completed ? "done" : "todo",
+            }
+          : task
+      )
+    );
+  };
+
   // Calendar helper functions
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -126,26 +275,87 @@ export default function Tasks() {
   };
 
   const getTasksForDate = (date: number) => {
-    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
+    const dateStr = `${currentDate.getFullYear()}-${String(
+      currentDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
     return tasks.filter((task) => task.dueDate === dateStr);
+  };
+
+  const navigateMonth = (direction: "prev" | "next") => {
+    setCurrentDate((prev) => {
+      const newDate = new Date(prev);
+      if (direction === "prev") {
+        newDate.setMonth(prev.getMonth() - 1);
+      } else {
+        newDate.setMonth(prev.getMonth() + 1);
+      }
+      return newDate;
+    });
   };
 
   const TaskCard = ({
     task,
     showDate = true,
+    isDraggable = false,
   }: {
     task: any;
     showDate?: boolean;
+    isDraggable?: boolean;
   }) => (
-    <div className="p-3 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow">
+    <div
+      className={`p-3 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow ${
+        isDraggable ? "cursor-move" : "cursor-pointer"
+      }`}
+      draggable={isDraggable}
+      onDragStart={(e) => isDraggable && handleDragStart(e, task)}
+      onClick={() => !isDraggable && setSelectedTask(task)}
+    >
       <div className="flex items-start justify-between mb-2">
         <h4 className="font-medium text-sm">{task.title}</h4>
-        <Badge
-          variant="secondary"
-          className={`${getPriorityColor(task.priority)} text-xs`}
-        >
-          {task.priority}
-        </Badge>
+        <div className="flex items-center space-x-1">
+          <Badge
+            variant="secondary"
+            className={`${getPriorityColor(task.priority)} text-xs`}
+          >
+            {task.priority}
+          </Badge>
+          {!isDraggable && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="w-3 h-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-2">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-8"
+                    onClick={() => handleEditTask(task)}
+                  >
+                    <Edit className="w-3 h-3 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-8 text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteTask(task.id)}
+                  >
+                    <Trash2 className="w-3 h-3 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
       <p className="text-xs text-muted-foreground mb-2">{task.description}</p>
       <div className="flex items-center justify-between">
@@ -190,25 +400,36 @@ export default function Tasks() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{tasks.length}</div>
             <div className="text-sm text-muted-foreground">Total Tasks</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">8</div>
+            <div className="text-2xl font-bold text-primary">
+              {tasks.filter((task) => task.status === "In Progress").length}
+            </div>
             <div className="text-sm text-muted-foreground">In Progress</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">4</div>
+            <div className="text-2xl font-bold text-success">
+              {tasks.filter((task) => task.completed).length}
+            </div>
             <div className="text-sm text-muted-foreground">Completed</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-warning">2</div>
+            <div className="text-2xl font-bold text-warning">
+              {
+                tasks.filter(
+                  (task) =>
+                    new Date(task.dueDate) < new Date() && !task.completed
+                ).length
+              }
+            </div>
             <div className="text-sm text-muted-foreground">Overdue</div>
           </CardContent>
         </Card>
@@ -260,7 +481,7 @@ export default function Tasks() {
                     <Checkbox
                       checked={task.completed}
                       className="mt-1"
-                      disabled={task.completed}
+                      onCheckedChange={() => handleToggleComplete(task.id)}
                     />
 
                     <div className="flex-1 space-y-2">
@@ -274,12 +495,47 @@ export default function Tasks() {
                         >
                           {task.title}
                         </h3>
-                        <Badge
-                          variant="secondary"
-                          className={getPriorityColor(task.priority)}
-                        >
-                          {task.priority}
-                        </Badge>
+                        <div className="flex items-center space-x-2">
+                          <Badge
+                            variant="secondary"
+                            className={getPriorityColor(task.priority)}
+                          >
+                            {task.priority}
+                          </Badge>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-40 p-2">
+                              <div className="space-y-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full justify-start h-8"
+                                  onClick={() => handleEditTask(task)}
+                                >
+                                  <Edit className="w-3 h-3 mr-2" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full justify-start h-8 text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteTask(task.id)}
+                                >
+                                  <Trash2 className="w-3 h-3 mr-2" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
 
                       <p className="text-sm text-muted-foreground">
@@ -309,8 +565,8 @@ export default function Tasks() {
                             task.status === "Completed"
                               ? "text-success border-success"
                               : task.status === "In Progress"
-                                ? "text-primary border-primary"
-                                : "text-muted-foreground"
+                              ? "text-primary border-primary"
+                              : "text-muted-foreground"
                           }
                         >
                           {task.status}
@@ -339,13 +595,7 @@ export default function Tasks() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      setCurrentDate(
-                        new Date(
-                          currentDate.setMonth(currentDate.getMonth() - 1),
-                        ),
-                      )
-                    }
+                    onClick={() => navigateMonth("prev")}
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
@@ -359,13 +609,7 @@ export default function Tasks() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      setCurrentDate(
-                        new Date(
-                          currentDate.setMonth(currentDate.getMonth() + 1),
-                        ),
-                      )
-                    }
+                    onClick={() => navigateMonth("next")}
                   >
                     <ChevronRight className="w-4 h-4" />
                   </Button>
@@ -382,7 +626,7 @@ export default function Tasks() {
                     >
                       {day}
                     </div>
-                  ),
+                  )
                 )}
               </div>
               <div className="grid grid-cols-7 gap-2">
@@ -390,7 +634,7 @@ export default function Tasks() {
                   { length: getFirstDayOfMonth(currentDate) },
                   (_, i) => (
                     <div key={`empty-${i}`} className="h-24"></div>
-                  ),
+                  )
                 )}
                 {Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => {
                   const date = i + 1;
@@ -400,7 +644,7 @@ export default function Tasks() {
                     new Date(
                       currentDate.getFullYear(),
                       currentDate.getMonth(),
-                      date,
+                      date
                     ).toDateString();
 
                   return (
@@ -411,7 +655,9 @@ export default function Tasks() {
                       }`}
                     >
                       <div
-                        className={`text-sm font-medium mb-1 ${isToday ? "text-primary" : ""}`}
+                        className={`text-sm font-medium mb-1 ${
+                          isToday ? "text-primary" : ""
+                        }`}
                       >
                         {date}
                       </div>
@@ -419,13 +665,14 @@ export default function Tasks() {
                         {dayTasks.slice(0, 2).map((task) => (
                           <div
                             key={task.id}
-                            className={`text-xs p-1 rounded text-white truncate ${
+                            className={`text-xs p-1 rounded text-white truncate cursor-pointer ${
                               task.priority === "High"
                                 ? "bg-destructive"
                                 : task.priority === "Medium"
-                                  ? "bg-warning"
-                                  : "bg-success"
+                                ? "bg-warning"
+                                : "bg-success"
                             }`}
+                            onClick={() => setSelectedTask(task)}
                           >
                             {task.title}
                           </div>
@@ -448,7 +695,11 @@ export default function Tasks() {
         <TabsContent value="kanban" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* To Do Column */}
-            <Card className="shadow-sm">
+            <Card
+              className="shadow-sm"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, "todo")}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   <span>To Do</span>
@@ -457,17 +708,27 @@ export default function Tasks() {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 min-h-[200px]">
                 {tasks
                   .filter((task) => task.column === "todo")
                   .map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard key={task.id} task={task} isDraggable={true} />
                   ))}
+                {tasks.filter((task) => task.column === "todo").length ===
+                  0 && (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    Drop tasks here
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* In Progress Column */}
-            <Card className="shadow-sm">
+            <Card
+              className="shadow-sm"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, "in-progress")}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   <span>In Progress</span>
@@ -482,17 +743,27 @@ export default function Tasks() {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 min-h-[200px]">
                 {tasks
                   .filter((task) => task.column === "in-progress")
                   .map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard key={task.id} task={task} isDraggable={true} />
                   ))}
+                {tasks.filter((task) => task.column === "in-progress")
+                  .length === 0 && (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    Drop tasks here
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Done Column */}
-            <Card className="shadow-sm">
+            <Card
+              className="shadow-sm"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, "done")}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   <span>Done</span>
@@ -504,12 +775,18 @@ export default function Tasks() {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 min-h-[200px]">
                 {tasks
                   .filter((task) => task.column === "done")
                   .map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard key={task.id} task={task} isDraggable={true} />
                   ))}
+                {tasks.filter((task) => task.column === "done").length ===
+                  0 && (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    Drop tasks here
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

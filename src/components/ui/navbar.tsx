@@ -47,7 +47,7 @@ export function Navbar() {
 
       {/* Right - Actions */}
       <div className="flex items-center space-x-3">
-        <Button variant="ghost" size="sm" className="relative text-white">
+        <Button variant="ghost" size="sm" className="relative text-black dark:text-white">
           <Bell className="h-4 w-4" />
           <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
             3
@@ -56,7 +56,7 @@ export function Navbar() {
 
         <ThemeToggle />
 
-        <Button variant="ghost" size="sm" className="text-white">
+        <Button variant="ghost" size="sm" className="text-black dark:text-white">
           <HelpCircle className="h-4 w-4" />
         </Button>
 
