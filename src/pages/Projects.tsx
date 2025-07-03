@@ -7,7 +7,6 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Progress } from "../components/ui/progress";
 import { useToast } from "../hooks/use-toast";
 import {
@@ -17,7 +16,6 @@ import {
 import {
   Plus,
   Calendar,
-  Users,
   DollarSign,
   Trash2,
   Pencil,

@@ -1,5 +1,19 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./../components/ui/card";
+import { useEffect, useState } from "react";
+import {
+  Edit2,
+  Trash2,
+  Plus,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "./../components/ui/card";
 import { Button } from "./../components/ui/button";
 import { Badge } from "./../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./../components/ui/avatar";
@@ -8,58 +22,110 @@ import {
   AddClientModal,
   ClientFormData,
 } from "./../components/modals/add-client-modal";
-import { Plus, Building2, Mail, Phone, MapPin } from "lucide-react";
+import { useSupabaseClient } from "../lib/supabaseClient";
+import { useAuth } from "@clerk/clerk-react";
 
 export default function Clients() {
   const [showAddClient, setShowAddClient] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [editingClient, setEditingClient] = useState<any | null>(null);
   const { toast } = useToast();
+  const { getClient } = useSupabaseClient();
+  const { userId } = useAuth();
 
-  const handleCreateClient = async (clientData: ClientFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast({
-      title: "Client Added",
-      description: `${clientData.name} has been added successfully.`,
-    });
-
-    console.log("Created client:", clientData);
+  const fetchClients = async () => {
+    const supabase = await getClient();
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching clients:", error.message);
+    } else {
+      setClients(data);
+    }
   };
-  const clients = [
-    {
-      id: 1,
-      name: "TechCorp Inc.",
-      email: "contact@techcorp.com",
-      phone: "+1 (555) 123-4567",
-      location: "San Francisco, CA",
-      projects: 3,
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      initials: "TC",
-    },
-    {
-      id: 2,
-      name: "StartupCo",
-      email: "hello@startupco.com",
-      phone: "+1 (555) 987-6543",
-      location: "New York, NY",
-      projects: 1,
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      initials: "SC",
-    },
-    {
-      id: 3,
-      name: "DesignStudio",
-      email: "info@designstudio.com",
-      phone: "+1 (555) 456-7890",
-      location: "Los Angeles, CA",
-      projects: 2,
-      status: "Completed",
-      avatar: "/api/placeholder/40/40",
-      initials: "DS",
-    },
-  ];
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const handleCreateOrUpdateClient = async (clientData: ClientFormData) => {
+    const supabase = await getClient();
+
+    const initials = clientData.name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase();
+
+    const avatar = `https://api.dicebear.com/7.x/adventurer/svg?jack=${encodeURIComponent(
+      clientData.name
+    )}`;
+
+    let error;
+    if (editingClient) {
+      // Update
+      ({ error } = await supabase
+        .from("clients")
+        .update({
+          ...clientData,
+          initials,
+          avatar,
+        })
+        .eq("id", editingClient.id));
+    } else {
+      // Insert
+      ({ error } = await supabase.from("clients").insert({
+        ...clientData,
+        initials,
+        avatar,
+        clerk_id: userId,
+      }));
+    }
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: editingClient ? "Client Updated" : "Client Added",
+        description: `${clientData.name} has been successfully ${
+          editingClient ? "updated" : "added"
+        }.`,
+      });
+      fetchClients();
+    }
+
+    setEditingClient(null); // reset editing state
+  };
+
+  const handleDeleteClient = async (id: string) => {
+    const supabase = await getClient();
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Client Deleted",
+        description: "Client has been successfully deleted.",
+      });
+      fetchClients();
+    }
+  };
+
+  const handleEditClick = (client: any) => {
+    setEditingClient(client);
+    setShowAddClient(true);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -72,39 +138,14 @@ export default function Clients() {
         </div>
         <Button
           className="bg-primary hover:bg-primary-600"
-          onClick={() => setShowAddClient(true)}
+          onClick={() => {
+            setEditingClient(null); // reset before adding new
+            setShowAddClient(true);
+          }}
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Client
         </Button>
-      </div>
-
-      {/* Client Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">8</div>
-            <div className="text-sm text-muted-foreground">Total Clients</div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">6</div>
-            <div className="text-sm text-muted-foreground">Active</div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">2</div>
-            <div className="text-sm text-muted-foreground">Completed</div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">15</div>
-            <div className="text-sm text-muted-foreground">Total Projects</div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Clients List */}
@@ -115,19 +156,37 @@ export default function Clients() {
             className="shadow-sm hover:shadow-md transition-shadow"
           >
             <CardHeader className="pb-3">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-12 w-12">
+              <div className="flex items-start space-x-3">
+                <Avatar className="h-16 w-16">
                   <AvatarImage src={client.avatar} alt={client.name} />
-                  <AvatarFallback className="bg-primary-100 text-primary-700">
-                    {client.initials}
-                  </AvatarFallback>
+                  <AvatarFallback>{client.initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <CardTitle className="text-lg">{client.name}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{client.name}</CardTitle>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleEditClick(client)}
+                      >
+                        <Edit2 className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleDeleteClient(client.id)}
+                      >
+                        <Trash2 className="text-muted-foreground text-red-600 " />
+                      </Button>
+                    </div>
+                  </div>
                   <Badge
                     variant="secondary"
                     className={
-                      client.status === "Active"
+                      client.status === "active"
                         ? "bg-success/10 text-success"
                         : "bg-muted text-muted-foreground"
                     }
@@ -137,6 +196,7 @@ export default function Clients() {
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
                 <div className="flex items-center space-x-2">
@@ -156,7 +216,7 @@ export default function Clients() {
                 <div className="flex items-center space-x-2">
                   <Building2 className="w-4 h-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    {client.projects} Projects
+                    {client.projects ?? 0} Projects
                   </span>
                 </div>
               </div>
@@ -167,8 +227,14 @@ export default function Clients() {
 
       <AddClientModal
         open={showAddClient}
-        onOpenChange={setShowAddClient}
-        onSubmit={handleCreateClient}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingClient(null);
+          }
+          setShowAddClient(open);
+        }}
+        onSubmit={handleCreateOrUpdateClient}
+        defaultValues={editingClient}
       />
     </div>
   );
