@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { ThemeToggle } from "../ui/theme-toggle";
+import Profile from "./../../pages/Profile"
 import {
   Bell,
   Search,
@@ -21,7 +22,7 @@ import {
 import { Input } from "../ui/input";
 import { useUser, useClerk } from "@clerk/clerk-react";
 
-export function Navbar() {
+export function Navbar({ onSectionChange }) {
   const { user } = useUser();
   const { signOut } = useClerk();
 
@@ -47,7 +48,11 @@ export function Navbar() {
 
       {/* Right - Actions */}
       <div className="flex items-center space-x-3">
-        <Button variant="ghost" size="sm" className="relative text-black dark:text-white">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="relative text-black dark:text-white"
+        >
           <Bell className="h-4 w-4" />
           <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
             3
@@ -56,7 +61,11 @@ export function Navbar() {
 
         <ThemeToggle />
 
-        <Button variant="ghost" size="sm" className="text-black dark:text-white">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-black dark:text-white"
+        >
           <HelpCircle className="h-4 w-4" />
         </Button>
 
@@ -92,11 +101,11 @@ export function Navbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onSectionChange("profile")}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onSectionChange("settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>

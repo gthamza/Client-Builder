@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./../components/ui/car
 import { Badge } from "./../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./../components/ui/avatar";
 import { Progress } from "./../components/ui/progress";
+import { useUser } from "@clerk/clerk-react";
 import {
   BarChart3,
   Users,
@@ -25,7 +26,7 @@ export default function Dashboard() {
       value: "8",
       change: "+1 from last month",
       icon: Users,
-      color: "text-accent",
+      color: "text-black dark:text-white",
     },
     {
       title: "Revenue",
@@ -64,12 +65,13 @@ export default function Dashboard() {
     },
   ];
 
+  const { user } = useUser();
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back! Here's an overview of your workspace.
+          Welcome {user?.fullName || "back"}! Here's an overview of your workspace.
         </p>
       </div>
 
@@ -131,8 +133,8 @@ export default function Dashboard() {
                     project.status === "Completed"
                       ? "bg-success/10 text-success"
                       : project.status === "Review"
-                        ? "bg-warning/10 text-warning"
-                        : "bg-primary/10 text-primary"
+                      ? "bg-warning/10 text-warning"
+                      : "bg-primary/10 text-primary"
                   }
                 >
                   {project.status}

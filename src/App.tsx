@@ -4,6 +4,7 @@ import { Navbar } from "./components/ui/navbar";
 import { FloatingActionButton } from "./components/ui/floating-action-button";
 import { WorkspaceHeader } from "./components/workspace/workspace-header";
 import { WorkspaceTabs } from "./components/workspace/workspace-tabs";
+
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Projects from "./pages/Projects";
@@ -13,6 +14,7 @@ import Invoices from "./pages/Invoices";
 import Chat from "./pages/Chat";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 
 export default function Index() {
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -33,6 +35,8 @@ export default function Index() {
         return <Invoices />;
       case "chat":
         return <Chat />;
+      case "profile":
+        return <Profile />;
       case "analytics":
         return <Analytics />;
       case "settings":
@@ -58,7 +62,7 @@ export default function Index() {
         onSectionChange={setActiveSection}
       />
       <div className="flex flex-col flex-1 min-w-0 border-l border-border">
-        <Navbar />
+        <Navbar onSectionChange={setActiveSection} />
         <main className="flex-1 overflow-auto">{renderContent()}</main>
         <FloatingActionButton />
       </div>
