@@ -93,6 +93,12 @@ export default function Clients() {
     };
 
     try {
+      // ✅ Ensure user exists in users table (if needed for foreign key)
+      await supabase
+        .from("users")
+        .upsert({ id: userId }) // Add more fields if needed
+        .select();
+
       let error;
       if (editingClient) {
         // Update existing client
@@ -105,9 +111,7 @@ export default function Clients() {
         ({ error } = await supabase.from("clients").insert(sanitizedClient));
       }
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: editingClient ? "Client Updated" : "Client Added",
