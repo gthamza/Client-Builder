@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
+import { useSupabaseClient } from "./lib/supabaseClient";
+
 import { Sidebar } from "./components/ui/sidebar";
 import { Navbar } from "./components/ui/navbar";
 import { FloatingActionButton } from "./components/ui/floating-action-button";
@@ -18,6 +21,33 @@ import Profile from "./pages/Profile";
 
 export default function Index() {
   const [activeSection, setActiveSection] = useState("dashboard");
+
+  const { getClient } = useSupabaseClient();
+  const { user } = useUser();
+
+  // ✅ Sync Clerk user to Supabase
+  useEffect(() => {
+    const syncUser = async () => {
+      if (!user) return;
+
+      const supabase = await getClient(); // 👈 correctly await the client
+
+      const { error } = await supabase.from("users").upsert({
+        clerk_id: user.id,
+        name: user.fullName || "",
+        email: user.primaryEmailAddress?.emailAddress || "",
+        image_url: user.imageUrl || "",
+      });
+
+      if (error) {
+        console.error("❌ Failed to sync user to Supabase:", error.message);
+      } else {
+        console.log("✅ User synced to Supabase");
+      }
+    };
+
+    syncUser();
+  }, [user]);
 
   const renderContent = () => {
     switch (activeSection) {
