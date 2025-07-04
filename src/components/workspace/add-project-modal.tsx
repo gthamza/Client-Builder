@@ -10,7 +10,6 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
-import { Slider } from "../../components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -27,26 +26,23 @@ import {
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "../../lib/utils";
-import { useSupabaseClient } from "../../lib/supabaseClient";
-import { useUser } from "@clerk/clerk-react"; // ✅ Clerk
 
-export type ProjectFormData = {
-  name: string;
-  description?: string;
-  client_id: string;
-  client_name: string;
-  status: string;
-  deadline?: Date;
-  budget?: string;
-  priority?: string;
+export interface ProjectFormData {
   progress: number;
-};
+  name: string;
+  description: string;
+  client: string;
+  status: string;
+  deadline: Date | undefined;
+  budget: string;
+  priority: string;
+}
 
 interface AddProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (projectData: ProjectFormData & { id?: string }) => void;
-  initialData?: (ProjectFormData & { id?: string }) | null;
+  onSubmit: (projectData: ProjectFormData & { id?: number }) => void;
+  initialData?: (ProjectFormData & { id?: number }) | null;
 }
 
 export function AddProjectModal({
@@ -55,16 +51,11 @@ export function AddProjectModal({
   onSubmit,
   initialData,
 }: AddProjectModalProps) {
-  const { getClient } = useSupabaseClient();
-  const { user } = useUser(); // ✅ get logged-in user
   const [isLoading, setIsLoading] = useState(false);
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-
   const [formData, setFormData] = useState<ProjectFormData>({
     name: "",
     description: "",
-    client_id: "",
-    client_name: "",
+    client: "",
     status: "Not Started",
     deadline: undefined,
     budget: "",
@@ -78,8 +69,7 @@ export function AddProjectModal({
         initialData ?? {
           name: "",
           description: "",
-          client_id: "",
-          client_name: "",
+          client: "",
           status: "Not Started",
           deadline: undefined,
           budget: "",
@@ -90,69 +80,9 @@ export function AddProjectModal({
     }
   }, [open, initialData]);
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      const supabase = await getClient();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, name")
-        .eq("clerk_id", user.id) // ✅ filter by user
-        .order("name", { ascending: true });
-
-      if (!error && data) {
-        setClients(data);
-      } else {
-        console.error("Error fetching clients:", error?.message);
-      }
-    };
-
-    if (open) fetchClients();
-  }, [open, getClient, user]);
-
-  const handleInputChange = (field: keyof ProjectFormData, value: any) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [field]: value };
-
-      // Auto-update progress ↔ status
-      if (field === "status") {
-        switch (value) {
-          case "Not Started":
-            updated.progress = 0;
-            break;
-          case "In Progress":
-            updated.progress =
-              prev.progress <= 0 ? 10 : Math.min(prev.progress, 50);
-            break;
-          case "Review":
-            updated.progress = Math.max(prev.progress, 75);
-            break;
-          case "Completed":
-            updated.progress = 100;
-            break;
-        }
-      }
-
-      if (field === "progress") {
-        const p = Number(value);
-        updated.status =
-          p === 0
-            ? "Not Started"
-            : p >= 100
-            ? "Completed"
-            : p >= 75
-            ? "Review"
-            : "In Progress";
-      }
-
-      return updated;
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.client_id) return;
+    if (!formData.name || !formData.client) return;
 
     setIsLoading(true);
     try {
@@ -167,6 +97,14 @@ export function AddProjectModal({
       setIsLoading(false);
     }
   };
+
+  const handleInputChange = (field: keyof ProjectFormData, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -196,28 +134,14 @@ export function AddProjectModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client_id">Client *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) => {
-                  const client = clients.find((c) => c.id === value);
-                  if (client) {
-                    handleInputChange("client_id", client.id);
-                    handleInputChange("client_name", client.name);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="client">Client *</Label>
+              <Input
+                id="client"
+                value={formData.client}
+                onChange={(e) => handleInputChange("client", e.target.value)}
+                placeholder="E.g., TechCorp Inc."
+                required
+              />
             </div>
           </div>
 
@@ -274,20 +198,22 @@ export function AddProjectModal({
 
           {/* Progress */}
           <div className="space-y-2">
-            <Label>Progress</Label>
-            <div className="flex items-center space-x-4">
-              <Slider
-                value={[formData.progress]}
-                onValueChange={(val) => handleInputChange("progress", val[0])}
-                max={100}
-                min={0}
-                step={1}
-                className="w-full"
-              />
-              <span className="text-sm font-medium text-muted-foreground w-10 text-right">
-                {formData.progress}%
-              </span>
-            </div>
+            <Label htmlFor="progress">Progress (%)</Label>
+            <Input
+              id="progress"
+              type="number"
+              min={0}
+              max={100}
+              value={formData.progress}
+              onChange={(e) =>
+                handleInputChange(
+                  "progress",
+                  Math.max(0, Math.min(100, Number(e.target.value)))
+                )
+              }
+              placeholder="E.g., 20"
+              required
+            />
           </div>
 
           {/* Deadline & Budget */}
@@ -345,7 +271,7 @@ export function AddProjectModal({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !formData.name || !formData.client_id}
+              disabled={isLoading || !formData.name || !formData.client}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialData?.id ? "Update Project" : "Create Project"}

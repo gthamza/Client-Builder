@@ -21,34 +21,70 @@ import Profile from "./pages/Profile";
 
 export default function Index() {
   const [activeSection, setActiveSection] = useState("dashboard");
-
+  const [isLoading, setIsLoading] = useState(true);
   const { getClient } = useSupabaseClient();
   const { user } = useUser();
-
+  const [error, setError] = useState<string | null>(null);
   // ✅ Sync Clerk user to Supabase
   useEffect(() => {
     const syncUser = async () => {
       if (!user) return;
 
-      const supabase = await getClient(); // 👈 correctly await the client
+      try {
+        setIsLoading(true); // Start loading while syncing
+        const supabase = await getClient(); // Get the Supabase client
 
-      const { error } = await supabase.from("users").upsert({
-        clerk_id: user.id,
-        name: user.fullName || "",
-        email: user.primaryEmailAddress?.emailAddress || "",
-        image_url: user.imageUrl || "",
-      });
+        // Check if the user already exists by clerk_id
+        const { data: existingUser, error: fetchError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("clerk_id", user.id)
+          .single(); // We expect a single user or null
 
-      if (error) {
-        console.error("❌ Failed to sync user to Supabase:", error.message);
-      } else {
+        if (fetchError) {
+          throw new Error(fetchError.message);
+        }
+
+        if (existingUser) {
+          // User exists, so we update their info
+          const { error: updateError } = await supabase
+            .from("users")
+            .update({
+              name: user.fullName || "",
+              email: user.primaryEmailAddress?.emailAddress || "",
+              image_url: user.imageUrl || "",
+            })
+            .eq("clerk_id", user.id);
+
+          if (updateError) {
+            throw new Error(updateError.message);
+          }
+        } else {
+          // User doesn't exist, so we insert them
+          const { error: insertError } = await supabase.from("users").insert({
+            clerk_id: user.id,
+            name: user.fullName || "",
+            email: user.primaryEmailAddress?.emailAddress || "",
+            image_url: user.imageUrl || "",
+          });
+
+          if (insertError) {
+            throw new Error(insertError.message);
+          }
+        }
+
         console.log("✅ User synced to Supabase");
+      } catch (err: any) {
+        console.error("❌ Failed to sync user to Supabase:", err.message);
+        setError("Failed to sync user. Please try again later.");
+      } finally {
+        setIsLoading(false); // End loading
       }
     };
 
     syncUser();
   }, [user]);
-
+  
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":

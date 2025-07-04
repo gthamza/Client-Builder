@@ -1,144 +1,73 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Progress } from "../components/ui/progress";
 import { useToast } from "../hooks/use-toast";
 import {
   AddProjectModal,
   ProjectFormData,
 } from "../components/workspace/add-project-modal";
-import {
-  Plus,
-  Calendar,
-  DollarSign,
-  Trash2,
-  Pencil,
-} from "lucide-react";
-import { useSupabaseClient } from "../lib/supabaseClient";
-import { useUser } from "@clerk/clerk-react";
+import { Plus, Calendar, Users, DollarSign } from "lucide-react";
 
 export default function Projects() {
   const [showAddProject, setShowAddProject] = useState(false);
   const { toast } = useToast();
-  const { user } = useUser();
-  const { getClient } = useSupabaseClient();
-  const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState<
-    (ProjectFormData & { id?: number }) | null
-  >(null);
 
-  // ✅ Fetch projects from Supabase
-  useEffect(() => {
-    const fetchProjects = async () => {
-      const supabase = await getClient();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("clerk_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Failed to load projects",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setProjects(data);
-      }
-    };
-
-    fetchProjects();
-  }, [user]);
-
-  // ✅ Handle Create Project
-  const handleSaveProject = async (
-    projectData: ProjectFormData & { id?: number }
-  ) => {
-    const supabase = await getClient();
-    if (!user) return;
-
-    let response;
-
-    if (projectData.id) {
-      response = await supabase
-        .from("projects")
-        .update({
-          name: projectData.name,
-          description: projectData.description,
-          client_id: projectData.client_id,
-          client_name: projectData.client_name,
-          status: projectData.status,
-          deadline: projectData.deadline
-            ? projectData.deadline.toISOString().split("T")[0]
-            : null,
-          budget: projectData.budget,
-          priority: projectData.priority,
-          progress: projectData.progress,
-        })
-        .eq("id", projectData.id)
-        .select("*");
-    } else {
-      response = await supabase
-        .from("projects")
-        .insert([
-          {
-            name: projectData.name,
-            description: projectData.description,
-            client_id: projectData.client_id,
-            client_name: projectData.client_name,
-            status: projectData.status,
-            deadline: projectData.deadline
-              ? projectData.deadline.toISOString().split("T")[0]
-              : null,
-            budget: projectData.budget,
-            priority: projectData.priority,
-            progress: projectData.progress,
-            clerk_id: user.id,
-          },
-        ])
-        .select("*");
-    }
-
-    const { data, error } = response;
-
-    if (error) {
-      toast({
-        title: `Failed to ${projectData.id ? "update" : "create"} project`,
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleCreateProject = async (projectData: ProjectFormData) => {
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     toast({
-      title: `Project ${projectData.id ? "Updated" : "Created"}`,
-      description: `${projectData.name} has been ${
-        projectData.id ? "updated" : "created"
-      } successfully.`,
+      title: "Project Created",
+      description: `${projectData.name} has been created successfully.`,
     });
 
-    if (data && data.length > 0) {
-      const newProject = data[0];
-      setProjects((prev) =>
-        projectData.id
-          ? prev.map((p) => (p.id === newProject.id ? newProject : p))
-          : [newProject, ...prev]
-      );
-    }
-
-    setSelectedProject(null);
+    console.log("Created project:", projectData);
   };
-  
-  
+  const projects = [
+    {
+      id: 1,
+      name: "E-commerce Redesign",
+      client: "TechCorp Inc.",
+      description: "Complete redesign of the online store interface",
+      progress: 65,
+      status: "In Progress",
+      budget: "$15,000",
+      deadline: "Mar 15, 2024",
+      team: [
+        { name: "Sarah Johnson", initials: "SJ" },
+        { name: "Mike Chen", initials: "MC" },
+        { name: "Lisa Rodriguez", initials: "LR" },
+      ],
+    },
+    {
+      id: 2,
+      name: "Mobile App UI",
+      client: "StartupCo",
+      description: "Native mobile app user interface design",
+      progress: 90,
+      status: "Review",
+      budget: "$12,000",
+      deadline: "Mar 10, 2024",
+      team: [
+        { name: "Mike Chen", initials: "MC" },
+        { name: "Lisa Rodriguez", initials: "LR" },
+      ],
+    },
+    {
+      id: 3,
+      name: "Brand Guidelines",
+      client: "DesignStudio",
+      description: "Complete brand identity and guidelines",
+      progress: 100,
+      status: "Completed",
+      budget: "$8,000",
+      deadline: "Feb 28, 2024",
+      team: [{ name: "Sarah Johnson", initials: "SJ" }],
+    },
+  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -153,48 +82,8 @@ export default function Projects() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const supabase = await getClient();
-
-    const { error } = await supabase.from("projects").delete().eq("id", id);
-
-    if (error) {
-      toast({
-        title: "Failed to delete project",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Project Deleted",
-        description: "The project has been successfully deleted.",
-      });
-      setProjects((prev) => prev.filter((project) => project.id !== id));
-    }
-  };
-  
-
-  function handleEdit(project: any): void {
-    setSelectedProject({
-      id: project.id,
-      name: project.name,
-      client_id: project.client_id,
-      client_name: project.client_name,
-      description: project.description,
-      progress: project.progress,
-      status: project.status,
-      budget: project.budget,
-      deadline: project.deadline ? new Date(project.deadline) : undefined,
-      priority: project.priority || "medium",
-    });
-    setShowAddProject(true);
-  }
-  
-  
-
   return (
     <div className="p-6 space-y-6">
-      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
@@ -215,37 +104,31 @@ export default function Projects() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">{projects.length}</div>
+            <div className="text-2xl font-bold">12</div>
             <div className="text-sm text-muted-foreground">Total Projects</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">
-              {projects.filter((p) => p.status === "In Progress").length}
-            </div>
+            <div className="text-2xl font-bold text-primary">7</div>
             <div className="text-sm text-muted-foreground">Active</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">
-              {projects.filter((p) => p.status === "Completed").length}
-            </div>
+            <div className="text-2xl font-bold text-success">5</div>
             <div className="text-sm text-muted-foreground">Completed</div>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-warning">
-              {projects.filter((p) => p.status === "Review").length}
-            </div>
+            <div className="text-2xl font-bold text-warning">2</div>
             <div className="text-sm text-muted-foreground">Review</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Projects List */}
+      {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {projects.map((project) => (
           <Card
@@ -262,29 +145,7 @@ export default function Projects() {
                   {project.status}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-sm text-muted-foreground">
-                  {project.client_name || "No Client"}
-                </p>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-muted-foreground text-blue-600 p-1"
-                    onClick={() => handleEdit(project)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-muted-foreground text-red-600 p-1"
-                    onClick={() => handleDelete(project.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground">{project.client}</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -295,12 +156,12 @@ export default function Projects() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
-                  <span className="font-medium">{project.progress || 0}%</span>
+                  <span className="font-medium">{project.progress}%</span>
                 </div>
-                <Progress value={project.progress || 0} className="h-2" />
+                <Progress value={project.progress} className="h-2" />
               </div>
 
-              {/* Budget & Deadline */}
+              {/* Project Details */}
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
@@ -309,6 +170,7 @@ export default function Projects() {
                   </div>
                   <span className="font-medium">{project.budget}</span>
                 </div>
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
@@ -317,18 +179,37 @@ export default function Projects() {
                   <span className="font-medium">{project.deadline}</span>
                 </div>
               </div>
+
+              {/* Team */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                  <Users className="w-4 h-4" />
+                  <span>Team</span>
+                </div>
+                <div className="flex -space-x-2">
+                  {project.team.map((member, index) => (
+                    <Avatar
+                      key={index}
+                      className="w-6 h-6 border-2 border-background"
+                    >
+                      <AvatarImage src="/api/placeholder/24/24" />
+                      <AvatarFallback className="text-xs bg-primary-100 text-primary-700">
+                        {member.initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}
-      </div>
 
-      {/* Add Project Modal */}
-      <AddProjectModal
-        open={showAddProject}
-        onOpenChange={setShowAddProject}
-        onSubmit={handleSaveProject}
-        initialData={selectedProject}
-      />
+        <AddProjectModal
+          open={showAddProject} // Modal visibility controlled by showAddProject
+          onOpenChange={setShowAddProject} // Function to change visibility state
+          onSubmit={handleCreateProject} // Callback to handle project submission
+        />
+      </div>
     </div>
   );
 }
