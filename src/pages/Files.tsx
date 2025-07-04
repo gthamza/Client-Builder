@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Button } from "./../components/ui/button";
 import { useToast } from "./../hooks/use-toast";
 import { FilesTab } from "./../components/workspace/tab-content/files-tab";
-import { AddFileModal, FileFormData } from "./../components/modals/add-file-modal";
+import {
+  AddFileModal,
+  FileFormData,
+} from "./../components/modals/add-file-modal";
 import { Plus } from "lucide-react";
 
 export default function Files() {

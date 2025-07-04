@@ -67,14 +67,15 @@ export default function Projects() {
     if (!user) return;
 
     let response;
+
     if (projectData.id) {
-      // 🔁 Update existing project
       response = await supabase
         .from("projects")
         .update({
           name: projectData.name,
           description: projectData.description,
-          client: projectData.client,
+          client_id: projectData.client_id,
+          client_name: projectData.client_name,
           status: projectData.status,
           deadline: projectData.deadline
             ? projectData.deadline.toISOString().split("T")[0]
@@ -86,14 +87,14 @@ export default function Projects() {
         .eq("id", projectData.id)
         .select("*");
     } else {
-      // ➕ Insert new project
       response = await supabase
         .from("projects")
         .insert([
           {
             name: projectData.name,
             description: projectData.description,
-            client: projectData.client,
+            client_id: projectData.client_id,
+            client_name: projectData.client_name,
             status: projectData.status,
             deadline: projectData.deadline
               ? projectData.deadline.toISOString().split("T")[0]
@@ -126,18 +127,17 @@ export default function Projects() {
     });
 
     if (data && data.length > 0) {
-      setProjects((prev) => {
-        const newProject = data[0];
-        if (projectData.id) {
-          return prev.map((p) => (p.id === newProject.id ? newProject : p));
-        } else {
-          return [newProject, ...prev];
-        }
-      });
+      const newProject = data[0];
+      setProjects((prev) =>
+        projectData.id
+          ? prev.map((p) => (p.id === newProject.id ? newProject : p))
+          : [newProject, ...prev]
+      );
     }
 
-    setSelectedProject(null); // ✅ Reset after save
+    setSelectedProject(null);
   };
+  
   
 
   const getStatusColor = (status: string) => {
@@ -174,21 +174,12 @@ export default function Projects() {
   };
   
 
-  function handleEdit(project: {
-    priority: string;
-    id: number;
-    name: string;
-    client: string;
-    description: string;
-    progress: number;
-    status: string;
-    budget: string;
-    deadline: string;
-  }): void {
+  function handleEdit(project: any): void {
     setSelectedProject({
       id: project.id,
       name: project.name,
-      client: project.client,
+      client_id: project.client_id,
+      client_name: project.client_name,
       description: project.description,
       progress: project.progress,
       status: project.status,
@@ -198,6 +189,7 @@ export default function Projects() {
     });
     setShowAddProject(true);
   }
+  
   
 
   return (
@@ -272,7 +264,7 @@ export default function Projects() {
               </div>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-sm text-muted-foreground">
-                  {project.client || "No Client"}
+                  {project.client_name || "No Client"}
                 </p>
                 <div className="flex space-x-2">
                   <Button

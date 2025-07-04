@@ -11,7 +11,6 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Slider } from "../../components/ui/slider";
-
 import {
   Select,
   SelectContent,
@@ -28,23 +27,25 @@ import {
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "../../lib/utils";
+import { useSupabaseClient } from "../../lib/supabaseClient";
 
-export interface ProjectFormData {
-  progress: number;
+export type ProjectFormData = {
   name: string;
-  description: string;
-  client: string;
+  description?: string;
+  client_id: string;
+  client_name: string;
   status: string;
-  deadline: Date | undefined;
-  budget: string;
-  priority: string;
-}
+  deadline?: Date;
+  budget?: string;
+  priority?: string;
+  progress: number;
+};
 
 interface AddProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (projectData: ProjectFormData & { id?: number }) => void;
-  initialData?: (ProjectFormData & { id?: number }) | null;
+  onSubmit: (projectData: ProjectFormData & { id?: string }) => void;
+  initialData?: (ProjectFormData & { id?: string }) | null;
 }
 
 export function AddProjectModal({
@@ -53,11 +54,15 @@ export function AddProjectModal({
   onSubmit,
   initialData,
 }: AddProjectModalProps) {
+  const { getClient } = useSupabaseClient(); // ✅ updated
   const [isLoading, setIsLoading] = useState(false);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+
   const [formData, setFormData] = useState<ProjectFormData>({
     name: "",
     description: "",
-    client: "",
+    client_id: "",
+    client_name: "",
     status: "Not Started",
     deadline: undefined,
     budget: "",
@@ -71,7 +76,8 @@ export function AddProjectModal({
         initialData ?? {
           name: "",
           description: "",
-          client: "",
+          client_id: "",
+          client_name: "",
           status: "Not Started",
           deadline: undefined,
           budget: "",
@@ -82,29 +88,29 @@ export function AddProjectModal({
     }
   }, [open, initialData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.client) return;
+  useEffect(() => {
+    const fetchClients = async () => {
+      const supabase = await getClient(); // ✅ fixed
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name")
+        .order("name", { ascending: true });
 
-    setIsLoading(true);
-    try {
-      await onSubmit({
-        ...formData,
-        id: initialData?.id,
-      });
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error saving project:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (!error && data) {
+        setClients(data);
+      } else {
+        console.error("Error fetching clients:", error?.message);
+      }
+    };
+
+    if (open) fetchClients();
+  }, [open, getClient]);
 
   const handleInputChange = (field: keyof ProjectFormData, value: any) => {
     setFormData((prev) => {
-      let updated = { ...prev, [field]: value };
+      const updated = { ...prev, [field]: value };
 
-      // Smart progress change on status selection
+      // Sync status ↔ progress
       if (field === "status") {
         switch (value) {
           case "Not Started":
@@ -123,7 +129,6 @@ export function AddProjectModal({
         }
       }
 
-      // Smart status change on progress update
       if (field === "progress") {
         const p = Number(value);
         if (p === 0) updated.status = "Not Started";
@@ -135,7 +140,24 @@ export function AddProjectModal({
       return updated;
     });
   };
-  
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.client_id) return;
+
+    setIsLoading(true);
+    try {
+      await onSubmit({
+        ...formData,
+        id: initialData?.id,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error saving project:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,14 +188,28 @@ export function AddProjectModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client">Client *</Label>
-              <Input
-                id="client"
-                value={formData.client}
-                onChange={(e) => handleInputChange("client", e.target.value)}
-                placeholder="E.g., TechCorp Inc."
-                required
-              />
+              <Label htmlFor="client_id">Client *</Label>
+              <Select
+                value={formData.client_id}
+                onValueChange={(value) => {
+                  const client = clients.find((c) => c.id === value);
+                  if (client) {
+                    handleInputChange("client_id", client.id);
+                    handleInputChange("client_name", client.name);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -301,7 +337,7 @@ export function AddProjectModal({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !formData.name || !formData.client}
+              disabled={isLoading || !formData.name || !formData.client_id}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialData?.id ? "Update Project" : "Create Project"}

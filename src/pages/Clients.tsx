@@ -35,15 +35,32 @@ export default function Clients() {
 
   const fetchClients = async () => {
     const supabase = await getClient();
-    const { data, error } = await supabase
-      .from("clients")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      console.error("Error fetching clients:", error.message);
-    } else {
-      setClients(data);
+
+    const [
+      { data: clientsData, error: clientsError },
+      { data: projectsData, error: projectsError },
+    ] = await Promise.all([
+      supabase.from("clients").select("*").eq("clerk_id", userId),
+      supabase.from("projects").select("client_id").eq("clerk_id", userId),
+    ]);
+
+    if (clientsError || projectsError) {
+      console.error("Error fetching data", clientsError || projectsError);
+      return;
     }
+
+    const projectCountMap = projectsData.reduce((acc, project) => {
+      const clientId = project.client_id;
+      acc[clientId] = (acc[clientId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const enrichedClients = clientsData.map((client) => ({
+      ...client,
+      projects: projectCountMap[client.id] || 0,
+    }));
+
+    setClients(enrichedClients);
   };
 
   useEffect(() => {
@@ -53,56 +70,64 @@ export default function Clients() {
   const handleCreateOrUpdateClient = async (clientData: ClientFormData) => {
     const supabase = await getClient();
 
+    // Generate initials and avatar from name
     const initials = clientData.name
       .split(" ")
       .map((word) => word[0])
       .join("")
       .toUpperCase();
 
-    const avatar = `https://api.dicebear.com/7.x/adventurer/svg?jack=${encodeURIComponent(
+    const avatar = `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(
       clientData.name
     )}`;
 
-    let error;
-    if (editingClient) {
-      // Update
-      ({ error } = await supabase
-        .from("clients")
-        .update({
-          ...clientData,
-          initials,
-          avatar,
-        })
-        .eq("id", editingClient.id));
-    } else {
-      // Insert
-      ({ error } = await supabase.from("clients").insert({
-        ...clientData,
-        initials,
-        avatar,
-        clerk_id: userId,
-      }));
-    }
+    const sanitizedClient = {
+      name: clientData.name.trim(),
+      email: clientData.email?.trim() || "",
+      phone: clientData.phone?.trim() || "",
+      location: clientData.location?.trim() || "",
+      status: clientData.status?.toLowerCase() || "active",
+      initials,
+      avatar,
+      clerk_id: userId,
+    };
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      let error;
+      if (editingClient) {
+        // Update existing client
+        ({ error } = await supabase
+          .from("clients")
+          .update(sanitizedClient)
+          .eq("id", editingClient.id));
+      } else {
+        // Add new client
+        ({ error } = await supabase.from("clients").insert(sanitizedClient));
+      }
+
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: editingClient ? "Client Updated" : "Client Added",
         description: `${clientData.name} has been successfully ${
           editingClient ? "updated" : "added"
         }.`,
       });
+
       fetchClients();
+      setEditingClient(null);
+      setShowAddClient(false);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to save client",
+        variant: "destructive",
+      });
     }
-
-    setEditingClient(null); // reset editing state
   };
-
+  
   const handleDeleteClient = async (id: string) => {
     const supabase = await getClient();
     const { error } = await supabase.from("clients").delete().eq("id", id);
@@ -122,10 +147,13 @@ export default function Clients() {
     }
   };
 
-  const handleEditClick = (client: any) => {
-    setEditingClient(client);
-    setShowAddClient(true);
-  };
+  const activeClients = clients.filter(
+    (c) => c.status?.toLowerCase() === "active"
+  );
+  const completedClients = clients.filter(
+    (c) => c.status?.toLowerCase() === "completed"
+  );
+  const totalProjects = clients.reduce((sum, c) => sum + (c.projects || 0), 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -139,13 +167,45 @@ export default function Clients() {
         <Button
           className="bg-primary hover:bg-primary-600"
           onClick={() => {
-            setEditingClient(null); // reset before adding new
+            setEditingClient(null);
             setShowAddClient(true);
           }}
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Client
         </Button>
+      </div>
+
+      {/* Client Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">{clients.length}</div>
+            <div className="text-sm text-muted-foreground">Total Clients</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-primary">
+              {activeClients.length}
+            </div>
+            <div className="text-sm text-muted-foreground">Active</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-success">
+              {completedClients.length}
+            </div>
+            <div className="text-sm text-muted-foreground">Completed</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">{totalProjects}</div>
+            <div className="text-sm text-muted-foreground">Total Projects</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Clients List */}
@@ -157,9 +217,11 @@ export default function Clients() {
           >
             <CardHeader className="pb-3">
               <div className="flex items-start space-x-3">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-12 w-12">
                   <AvatarImage src={client.avatar} alt={client.name} />
-                  <AvatarFallback>{client.initials}</AvatarFallback>
+                  <AvatarFallback className="bg-primary-100 text-primary-700">
+                    {client.initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
@@ -169,7 +231,10 @@ export default function Clients() {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => handleEditClick(client)}
+                        onClick={() => {
+                          setEditingClient(client);
+                          setShowAddClient(true);
+                        }}
                       >
                         <Edit2 className="w-4 h-4 text-muted-foreground" />
                       </Button>
@@ -179,14 +244,14 @@ export default function Clients() {
                         className="h-6 w-6"
                         onClick={() => handleDeleteClient(client.id)}
                       >
-                        <Trash2 className="text-muted-foreground text-red-600 " />
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </Button>
                     </div>
                   </div>
                   <Badge
                     variant="secondary"
                     className={
-                      client.status === "active"
+                      client.status?.toLowerCase() === "active"
                         ? "bg-success/10 text-success"
                         : "bg-muted text-muted-foreground"
                     }
@@ -228,9 +293,7 @@ export default function Clients() {
       <AddClientModal
         open={showAddClient}
         onOpenChange={(open) => {
-          if (!open) {
-            setEditingClient(null);
-          }
+          if (!open) setEditingClient(null);
           setShowAddClient(open);
         }}
         onSubmit={handleCreateOrUpdateClient}

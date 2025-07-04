@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 
 interface AddFileModalProps {
   open: boolean;
@@ -30,7 +30,6 @@ export interface FileFormData {
   description: string;
   project: string;
   category: string;
-  tags: string[];
   file: File | null;
 }
 
@@ -45,10 +44,8 @@ export function AddFileModal({
     description: "",
     project: "",
     category: "design",
-    tags: [],
     file: null,
   });
-  const [tagInput, setTagInput] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,10 +60,8 @@ export function AddFileModal({
         description: "",
         project: "",
         category: "design",
-        tags: [],
         file: null,
       });
-      setTagInput("");
       onOpenChange(false);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -93,11 +88,7 @@ export function AddFileModal({
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    setDragActive(e.type === "dragenter" || e.type === "dragover");
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -105,32 +96,8 @@ export function AddFileModal({
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    if (e.dataTransfer.files?.[0]) {
       handleFileSelect(e.dataTransfer.files[0]);
-    }
-  };
-
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()],
-      }));
-      setTagInput("");
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((tag) => tag !== tagToRemove),
-    }));
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTag();
     }
   };
 
@@ -185,7 +152,7 @@ export function AddFileModal({
                     className="hidden"
                     id="file-input"
                     onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
+                      if (e.target.files?.[0]) {
                         handleFileSelect(e.target.files[0]);
                       }
                     }}
@@ -268,46 +235,6 @@ export function AddFileModal({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-1">
-            <Label>Tags</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add tag"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addTag}
-              >
-                Add
-              </Button>
-            </div>
-            {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-1">
-                {formData.tags.map((tag, i) => (
-                  <div
-                    key={i}
-                    className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm flex items-center gap-1"
-                  >
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="hover:text-primary-700"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Actions */}
