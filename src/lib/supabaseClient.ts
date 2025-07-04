@@ -8,7 +8,11 @@ export const useSupabaseClient = () => {
   const { getToken } = useAuth();
 
   const getClient = async () => {
-    const token = await getToken({ template: "supabase" });
+    // ✅ Force refresh the token to avoid JWT expiration
+    const token = await getToken({
+      template: "supabase",
+      skipCache: true,
+    });
 
     return createBrowserClient(supabaseUrl, supabaseAnonKey, {
       global: {
