@@ -28,6 +28,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "../../lib/utils";
 import { useSupabaseClient } from "../../lib/supabaseClient";
+import { useUser } from "@clerk/clerk-react"; // ✅ Clerk
 
 export type ProjectFormData = {
   name: string;
@@ -54,7 +55,8 @@ export function AddProjectModal({
   onSubmit,
   initialData,
 }: AddProjectModalProps) {
-  const { getClient } = useSupabaseClient(); // ✅ updated
+  const { getClient } = useSupabaseClient();
+  const { user } = useUser(); // ✅ get logged-in user
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
 
@@ -90,10 +92,13 @@ export function AddProjectModal({
 
   useEffect(() => {
     const fetchClients = async () => {
-      const supabase = await getClient(); // ✅ fixed
+      const supabase = await getClient();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from("clients")
         .select("id, name")
+        .eq("clerk_id", user.id) // ✅ filter by user
         .order("name", { ascending: true });
 
       if (!error && data) {
@@ -104,13 +109,13 @@ export function AddProjectModal({
     };
 
     if (open) fetchClients();
-  }, [open, getClient]);
+  }, [open, getClient, user]);
 
   const handleInputChange = (field: keyof ProjectFormData, value: any) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
 
-      // Sync status ↔ progress
+      // Auto-update progress ↔ status
       if (field === "status") {
         switch (value) {
           case "Not Started":
@@ -118,10 +123,10 @@ export function AddProjectModal({
             break;
           case "In Progress":
             updated.progress =
-              prev.progress <= 0 ? 10 : prev.progress < 75 ? prev.progress : 50;
+              prev.progress <= 0 ? 10 : Math.min(prev.progress, 50);
             break;
           case "Review":
-            updated.progress = prev.progress < 75 ? 75 : prev.progress;
+            updated.progress = Math.max(prev.progress, 75);
             break;
           case "Completed":
             updated.progress = 100;
@@ -131,10 +136,14 @@ export function AddProjectModal({
 
       if (field === "progress") {
         const p = Number(value);
-        if (p === 0) updated.status = "Not Started";
-        else if (p > 0 && p < 75) updated.status = "In Progress";
-        else if (p >= 75 && p < 100) updated.status = "Review";
-        else if (p === 100) updated.status = "Completed";
+        updated.status =
+          p === 0
+            ? "Not Started"
+            : p >= 100
+            ? "Completed"
+            : p >= 75
+            ? "Review"
+            : "In Progress";
       }
 
       return updated;
@@ -158,7 +167,6 @@ export function AddProjectModal({
       setIsLoading(false);
     }
   };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
