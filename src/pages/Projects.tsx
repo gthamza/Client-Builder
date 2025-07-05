@@ -1,89 +1,123 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Progress } from "../components/ui/progress";
 import { useToast } from "../hooks/use-toast";
 import {
   AddProjectModal,
   ProjectFormData,
 } from "../components/workspace/add-project-modal";
-import { Plus, Calendar, Users, DollarSign } from "lucide-react";
+import { Plus, Calendar, DollarSign, Trash2, Pencil } from "lucide-react";
 
 export default function Projects() {
-  const [showAddProject, setShowAddProject] = useState(false);
   const { toast } = useToast();
-
-  const handleCreateProject = async (projectData: ProjectFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast({
-      title: "Project Created",
-      description: `${projectData.name} has been created successfully.`,
-    });
-
-    console.log("Created project:", projectData);
-  };
-  const projects = [
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [projects, setProjects] = useState<any[]>([
     {
       id: 1,
       name: "E-commerce Redesign",
-      client: "TechCorp Inc.",
+      client_name: "TechCorp Inc.",
       description: "Complete redesign of the online store interface",
       progress: 65,
       status: "In Progress",
       budget: "$15,000",
-      deadline: "Mar 15, 2024",
-      team: [
-        { name: "Sarah Johnson", initials: "SJ" },
-        { name: "Mike Chen", initials: "MC" },
-        { name: "Lisa Rodriguez", initials: "LR" },
-      ],
+      deadline: "2024-08-20",
+      priority: "high",
     },
     {
       id: 2,
       name: "Mobile App UI",
-      client: "StartupCo",
+      client_name: "StartupCo",
       description: "Native mobile app user interface design",
       progress: 90,
       status: "Review",
       budget: "$12,000",
-      deadline: "Mar 10, 2024",
-      team: [
-        { name: "Mike Chen", initials: "MC" },
-        { name: "Lisa Rodriguez", initials: "LR" },
-      ],
+      deadline: "2024-08-18",
+      priority: "medium",
     },
     {
       id: 3,
       name: "Brand Guidelines",
-      client: "DesignStudio",
+      client_name: "DesignStudio",
       description: "Complete brand identity and guidelines",
       progress: 100,
       status: "Completed",
       budget: "$8,000",
-      deadline: "Feb 28, 2024",
-      team: [{ name: "Sarah Johnson", initials: "SJ" }],
+      deadline: "2024-08-10",
+      priority: "low",
     },
-  ];
+  ]);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Completed":
-        return "bg-success/10 text-success";
+        return "bg-green-100 text-green-600";
       case "In Progress":
-        return "bg-primary/10 text-primary";
+        return "bg-blue-100 text-blue-600";
       case "Review":
-        return "bg-warning/10 text-warning";
+        return "bg-yellow-100 text-yellow-600";
       default:
-        return "bg-muted text-muted-foreground";
+        return "bg-gray-100 text-gray-600";
     }
+  };
+
+  const handleSaveProject = (
+    projectData: ProjectFormData & { id?: number }
+  ) => {
+    if (projectData.id) {
+      // Update
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectData.id ? { ...p, ...projectData } : p
+        )
+      );
+      toast({
+        title: "Project Updated",
+        description: `${projectData.name} was updated.`,
+      });
+    } else {
+      // Create
+      const newProject = {
+        ...projectData,
+        id: Math.floor(Math.random() * 10000),
+      };
+      setProjects((prev) => [newProject, ...prev]);
+      toast({
+        title: "Project Created",
+        description: `${projectData.name} was created.`,
+      });
+    }
+
+    setSelectedProject(null);
+    setShowAddProject(false);
+  };
+
+  const handleEdit = (project: any) => {
+    setSelectedProject({
+      ...project,
+      deadline: project.deadline ? new Date(project.deadline) : undefined,
+    });
+    setShowAddProject(true);
+  };
+
+  const handleDelete = (id: number) => {
+    setProjects((prev) => prev.filter((project) => project.id !== id));
+    toast({
+      title: "Project Deleted",
+      description: "The project has been successfully deleted.",
+    });
   };
 
   return (
     <div className="p-6 space-y-6">
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
@@ -91,10 +125,7 @@ export default function Projects() {
             Overview of all your active and completed projects
           </p>
         </div>
-        <Button
-          className="bg-primary hover:bg-primary-600"
-          onClick={() => setShowAddProject(true)}
-        >
+        <Button onClick={() => setShowAddProject(true)}>
           <Plus className="w-4 h-4 mr-2" />
           New Project
         </Button>
@@ -102,50 +133,72 @@ export default function Projects() {
 
       {/* Project Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-sm">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{projects.length}</div>
             <div className="text-sm text-muted-foreground">Total Projects</div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">7</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {projects.filter((p) => p.status === "In Progress").length}
+            </div>
             <div className="text-sm text-muted-foreground">Active</div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">5</div>
+            <div className="text-2xl font-bold text-green-600">
+              {projects.filter((p) => p.status === "Completed").length}
+            </div>
             <div className="text-sm text-muted-foreground">Completed</div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-warning">2</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {projects.filter((p) => p.status === "Review").length}
+            </div>
             <div className="text-sm text-muted-foreground">Review</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Projects Grid */}
+      {/* Project Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {projects.map((project) => (
-          <Card
-            key={project.id}
-            className="shadow-sm hover:shadow-md transition-shadow"
-          >
+          <Card key={project.id}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">{project.name}</CardTitle>
-                <Badge
-                  variant="secondary"
-                  className={getStatusColor(project.status)}
-                >
+                <Badge className={getStatusColor(project.status)}>
                   {project.status}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{project.client}</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-sm text-muted-foreground">
+                  {project.client_name || "No Client"}
+                </p>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600 p-1"
+                    onClick={() => handleEdit(project)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 p-1"
+                    onClick={() => handleDelete(project.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -161,7 +214,7 @@ export default function Projects() {
                 <Progress value={project.progress} className="h-2" />
               </div>
 
-              {/* Project Details */}
+              {/* Budget & Deadline */}
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
@@ -170,7 +223,6 @@ export default function Projects() {
                   </div>
                   <span className="font-medium">{project.budget}</span>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
@@ -179,37 +231,18 @@ export default function Projects() {
                   <span className="font-medium">{project.deadline}</span>
                 </div>
               </div>
-
-              {/* Team */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span>Team</span>
-                </div>
-                <div className="flex -space-x-2">
-                  {project.team.map((member, index) => (
-                    <Avatar
-                      key={index}
-                      className="w-6 h-6 border-2 border-background"
-                    >
-                      <AvatarImage src="/api/placeholder/24/24" />
-                      <AvatarFallback className="text-xs bg-primary-100 text-primary-700">
-                        {member.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
         ))}
-
-        <AddProjectModal
-          open={showAddProject} // Modal visibility controlled by showAddProject
-          onOpenChange={setShowAddProject} // Function to change visibility state
-          onSubmit={handleCreateProject} // Callback to handle project submission
-        />
       </div>
+
+      {/* Add/Edit Modal */}
+      <AddProjectModal
+        open={showAddProject}
+        onOpenChange={setShowAddProject}
+        onSubmit={handleSaveProject}
+        initialData={selectedProject}
+      />
     </div>
   );
 }

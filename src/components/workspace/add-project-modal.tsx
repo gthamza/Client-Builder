@@ -198,21 +198,28 @@ export function AddProjectModal({
 
           {/* Progress */}
           <div className="space-y-2">
-            <Label htmlFor="progress">Progress (%)</Label>
-            <Input
+            <Label htmlFor="progress">Progress: {formData.progress}%</Label>
+            <input
               id="progress"
-              type="number"
+              type="range"
               min={0}
               max={100}
               value={formData.progress}
               onChange={(e) =>
-                handleInputChange(
-                  "progress",
-                  Math.max(0, Math.min(100, Number(e.target.value)))
-                )
+                handleInputChange("progress", Number(e.target.value))
               }
-              placeholder="E.g., 20"
-              required
+              className={cn(
+                "w-full h-2 rounded-lg appearance-none cursor-pointer",
+                "bg-[length:var(--progress)_100%] bg-no-repeat bg-gray-300",
+                "bg-gradient-to-r from-blue-500 to-blue-500",
+                "[&::-webkit-slider-thumb]:appearance-none",
+                "[&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4",
+                "[&::-webkit-slider-thumb]:bg-blue-600",
+                "[&::-webkit-slider-thumb]:rounded-full"
+              )}
+              style={{
+                ["--progress" as any]: `${formData.progress}%`,
+              }}
             />
           </div>
 
