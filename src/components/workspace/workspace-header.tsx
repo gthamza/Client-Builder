@@ -14,105 +14,64 @@ import {
   AddProjectModal,
   ProjectFormData,
 } from "../../components/workspace/add-project-modal";
-import { useUser } from "@clerk/clerk-react";
-import { useSupabaseClient } from "../../lib/supabaseClient";
 
 export function WorkspaceHeader() {
   const [showAddProject, setShowAddProject] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
+
+  // 🧪 Dummy projects
+  const [projects, setProjects] = useState<any[]>([
+    {
+      id: "1",
+      name: "Dummy Project A",
+      status: "In Progress",
+      description: "This is a sample project in progress.",
+    },
+    {
+      id: "2",
+      name: "Dummy Project B",
+      status: "Completed",
+      description: "This project is done.",
+    },
+  ]);
+
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null
+    "1"
   );
   const { toast } = useToast();
-  const { user } = useUser();
-  const { getClient } = useSupabaseClient();
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
-
-  // 🔁 Fetch projects on mount
-  useEffect(() => {
-    const fetchProjects = async () => {
-      const supabase = await getClient();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("clerk_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Failed to load projects",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setProjects(data);
-        if (data.length > 0) {
-          setSelectedProjectId(data[0].id); // default selection
-        }
-      }
-    };
-
-    fetchProjects();
-  }, [user]);
-
-  // ✅ Handle Create Project
-  const handleCreateProject = async (projectData: ProjectFormData) => {
-    const supabase = await getClient();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("projects")
-      .insert([
-        {
-          name: projectData.name,
-          description: projectData.description,
-          client: projectData.client,
-          status: projectData.status,
-          deadline: projectData.deadline
-            ? projectData.deadline.toISOString().split("T")[0]
-            : null,
-          budget: projectData.budget,
-          progress: projectData.progress,
-          priority: projectData.priority,
-          clerk_id: user.id,
-        },
-      ])
-      .select("*");
-
-    if (error) {
-      toast({
-        title: "Failed to create project",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Project Created",
-        description: `${projectData.name} has been created successfully.`,
-      });
-      if (data && data.length > 0) {
-        setProjects((prev) => [data[0], ...prev]);
-        setSelectedProjectId(data[0].id);
-      }
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Completed":
-        return "bg-success/10 text-success";
+        return "bg-green-100 text-green-600";
       case "In Progress":
-        return "bg-primary/10 text-primary";
+        return "bg-blue-100 text-blue-600";
       case "Review":
-        return "bg-warning/10 text-warning";
+        return "bg-yellow-100 text-yellow-700";
       case "Not Started":
-        return "bg-muted text-muted-foreground";
+        return "bg-gray-100 text-gray-600";
       default:
         return "bg-muted text-muted-foreground";
     }
+  };
+
+  // Dummy project submit handler
+  const handleCreateProject = (data: ProjectFormData) => {
+    const newProject = {
+      id: (projects.length + 1).toString(),
+      name: data.name,
+      description: data.description || "No description",
+      status: data.status || "Not Started",
+    };
+    setProjects([...projects, newProject]);
+    setSelectedProjectId(newProject.id);
+    setShowAddProject(false);
+
+    toast({
+      title: "Project Created",
+      description: `${data.name} has been added.`,
+    });
   };
 
   return (

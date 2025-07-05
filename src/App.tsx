@@ -31,22 +31,22 @@ export default function Index() {
       if (!user) return;
 
       try {
-        setIsLoading(true); // Start loading while syncing
-        const supabase = await getClient(); // Get the Supabase client
+        setIsLoading(true);
+        const supabase = await getClient();
+        const clerkId = user.id.split(":")[0];
 
-        // Check if the user already exists by clerk_id
-        const { data: existingUser, error: fetchError } = await supabase
+        // Safely get the user
+        const { data, error: fetchError } = await supabase
           .from("users")
           .select("*")
-          .eq("clerk_id", user.id)
-          .single(); // We expect a single user or null
+          .eq("clerk_id", clerkId);
 
-        if (fetchError) {
-          throw new Error(fetchError.message);
-        }
+        if (fetchError) throw new Error(fetchError.message);
+
+        const existingUser = data?.[0];
 
         if (existingUser) {
-          // User exists, so we update their info
+          // Update user
           const { error: updateError } = await supabase
             .from("users")
             .update({
@@ -54,23 +54,19 @@ export default function Index() {
               email: user.primaryEmailAddress?.emailAddress || "",
               image_url: user.imageUrl || "",
             })
-            .eq("clerk_id", user.id);
+            .eq("clerk_id", clerkId);
 
-          if (updateError) {
-            throw new Error(updateError.message);
-          }
+          if (updateError) throw new Error(updateError.message);
         } else {
-          // User doesn't exist, so we insert them
+          // Insert user
           const { error: insertError } = await supabase.from("users").insert({
-            clerk_id: user.id,
+            clerk_id: clerkId,
             name: user.fullName || "",
             email: user.primaryEmailAddress?.emailAddress || "",
             image_url: user.imageUrl || "",
           });
 
-          if (insertError) {
-            throw new Error(insertError.message);
-          }
+          if (insertError) throw new Error(insertError.message);
         }
 
         console.log("✅ User synced to Supabase");
@@ -78,9 +74,10 @@ export default function Index() {
         console.error("❌ Failed to sync user to Supabase:", err.message);
         setError("Failed to sync user. Please try again later.");
       } finally {
-        setIsLoading(false); // End loading
+        setIsLoading(false);
       }
     };
+    
 
     syncUser();
   }, [user]);
