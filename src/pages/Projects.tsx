@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -14,46 +14,43 @@ import {
   ProjectFormData,
 } from "../components/workspace/add-project-modal";
 import { Plus, Calendar, DollarSign, Trash2, Pencil } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 export default function Projects() {
   const { toast } = useToast();
+  const { userId } = useAuth();
+
   const [showAddProject, setShowAddProject] = useState(false);
-  const [projects, setProjects] = useState<any[]>([
-    {
-      id: 1,
-      name: "E-commerce Redesign",
-      client_name: "TechCorp Inc.",
-      description: "Complete redesign of the online store interface",
-      progress: 65,
-      status: "In Progress",
-      budget: "$15,000",
-      deadline: "2024-08-20",
-      priority: "high",
-    },
-    {
-      id: 2,
-      name: "Mobile App UI",
-      client_name: "StartupCo",
-      description: "Native mobile app user interface design",
-      progress: 90,
-      status: "Review",
-      budget: "$12,000",
-      deadline: "2024-08-18",
-      priority: "medium",
-    },
-    {
-      id: 3,
-      name: "Brand Guidelines",
-      client_name: "DesignStudio",
-      description: "Complete brand identity and guidelines",
-      progress: 100,
-      status: "Completed",
-      budget: "$8,000",
-      deadline: "2024-08-10",
-      priority: "low",
-    },
-  ]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch projects for logged-in user
+  const fetchProjects = async () => {
+    if (!userId) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("clerk_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching projects:", error.message);
+    } else {
+      setProjects(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [userId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,31 +65,49 @@ export default function Projects() {
     }
   };
 
-  const handleSaveProject = (
+  const handleSaveProject = async (
     projectData: ProjectFormData & { id?: number }
   ) => {
+    if (!userId) return;
+
     if (projectData.id) {
       // Update
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === projectData.id ? { ...p, ...projectData } : p
-        )
-      );
-      toast({
-        title: "Project Updated",
-        description: `${projectData.name} was updated.`,
-      });
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          ...projectData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", projectData.id)
+        .eq("clerk_id", userId);
+
+      if (!error) {
+        toast({
+          title: "Project Updated",
+          description: `${projectData.name} was updated.`,
+        });
+        fetchProjects();
+      } else {
+        console.error("Update error:", error.message);
+      }
     } else {
       // Create
-      const newProject = {
+      const { error } = await supabase.from("projects").insert({
         ...projectData,
-        id: Math.floor(Math.random() * 10000),
-      };
-      setProjects((prev) => [newProject, ...prev]);
-      toast({
-        title: "Project Created",
-        description: `${projectData.name} was created.`,
+        clerk_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
+
+      if (!error) {
+        toast({
+          title: "Project Created",
+          description: `${projectData.name} was created.`,
+        });
+        fetchProjects();
+      } else {
+        console.error("Insert error:", error.message);
+      }
     }
 
     setSelectedProject(null);
@@ -107,12 +122,22 @@ export default function Projects() {
     setShowAddProject(true);
   };
 
-  const handleDelete = (id: number) => {
-    setProjects((prev) => prev.filter((project) => project.id !== id));
-    toast({
-      title: "Project Deleted",
-      description: "The project has been successfully deleted.",
-    });
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", id)
+      .eq("clerk_id", userId);
+
+    if (!error) {
+      toast({
+        title: "Project Deleted",
+        description: "The project has been successfully deleted.",
+      });
+      fetchProjects();
+    } else {
+      console.error("Delete error:", error.message);
+    }
   };
 
   return (
@@ -178,7 +203,7 @@ export default function Projects() {
               </div>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-sm text-muted-foreground">
-                  {project.client_name || "No Client"}
+                  {project.client || "No Client"}
                 </p>
                 <div className="flex space-x-2">
                   <Button
@@ -228,7 +253,9 @@ export default function Projects() {
                     <Calendar className="w-4 h-4" />
                     <span>Deadline</span>
                   </div>
-                  <span className="font-medium">{project.deadline}</span>
+                  <span className="font-medium">
+                    {new Date(project.deadline).toLocaleDateString("en-CA")}
+                  </span>
                 </div>
               </div>
             </CardContent>
