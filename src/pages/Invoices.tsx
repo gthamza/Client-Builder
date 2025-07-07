@@ -52,7 +52,7 @@ export default function Invoices() {
       case "overdue":
         return "bg-destructive/10 text-destructive hover:bg-destructive/20";
       case "draft":
-        return "bg-muted text-muted-foreground hover:bg-muted/80";
+        return "bg-muted text-green-100 hover:bg-muted/80";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -254,18 +254,17 @@ export default function Invoices() {
       });
     }
   };
-  
-  const totalThisMonth = invoices
-  .filter((inv) => {
-    const issueDate = new Date(inv.issue_date);
-    const now = new Date();
-    return (
-      issueDate.getMonth() === now.getMonth() &&
-      issueDate.getFullYear() === now.getFullYear()
-    );
-  })
-  .reduce((sum, inv) => sum + inv.total, 0);
 
+  const totalThisMonth = invoices
+    .filter((inv) => {
+      const issueDate = new Date(inv.issue_date);
+      const now = new Date();
+      return (
+        issueDate.getMonth() === now.getMonth() &&
+        issueDate.getFullYear() === now.getFullYear()
+      );
+    })
+    .reduce((sum, inv) => sum + inv.total, 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -408,7 +407,7 @@ export default function Invoices() {
                           await generateInvoicePdf({ ...invoice, items });
                         }}
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-4 h-4 text-green-500" />
                       </Button>
 
                       {/* Edit Button */}
@@ -434,7 +433,7 @@ export default function Invoices() {
                           setShowAddInvoice(true);
                         }}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-4 h-4 text-blue-500" />
                       </Button>
 
                       {/* Delete Button */}
@@ -446,7 +445,7 @@ export default function Invoices() {
                           setShowDeleteDialog(true);
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </Button>
                     </div>
                   </div>

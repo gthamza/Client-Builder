@@ -341,7 +341,8 @@ export function AddInvoiceModal({
             <div className="space-y-3">
               {formData.items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
+                  <div className="col-span-5 space-y-1">
+                    <Label>Description</Label>
                     <Input
                       placeholder="Description"
                       value={item.description}
@@ -350,26 +351,30 @@ export function AddInvoiceModal({
                       }
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-1">
+                    <Label>Quantity</Label>
                     <Input
                       type="number"
-                      placeholder="Qty"
+                      placeholder="3"
                       value={item.quantity}
                       onChange={(e) =>
                         updateItem(index, "quantity", Number(e.target.value))
                       }
                     />
                   </div>
-                  <div className="col-span-2">
+
+                  <div className="col-span-2 space-y-1">
+                    <Label>Rate</Label>
                     <Input
                       type="number"
-                      placeholder="Rate"
+                      placeholder="50"
                       value={item.rate}
                       onChange={(e) =>
                         updateItem(index, "rate", Number(e.target.value))
                       }
                     />
                   </div>
+
                   <div className="col-span-2">
                     <Input
                       value={`$${item.amount.toFixed(2)}`}
