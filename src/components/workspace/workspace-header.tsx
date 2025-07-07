@@ -14,32 +14,22 @@ import {
   AddProjectModal,
   ProjectFormData,
 } from "../../components/workspace/add-project-modal";
+import { supabase } from "../../lib/supabase";
+import { useUser } from "@clerk/clerk-react";
 
 export function WorkspaceHeader() {
   const [showAddProject, setShowAddProject] = useState(false);
-
-  // 🧪 Dummy projects
-  const [projects, setProjects] = useState<any[]>([
-    {
-      id: "1",
-      name: "Dummy Project A",
-      status: "In Progress",
-      description: "This is a sample project in progress.",
-    },
-    {
-      id: "2",
-      name: "Dummy Project B",
-      status: "Completed",
-      description: "This project is done.",
-    },
-  ]);
-
+  const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    "1"
+    null
   );
   const { toast } = useToast();
+  const { user } = useUser();
+  const userId = user?.id;
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const selectedProject = projects.find(
+    (p) => p.id.toString() === selectedProjectId
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -56,22 +46,71 @@ export function WorkspaceHeader() {
     }
   };
 
-  // Dummy project submit handler
-  const handleCreateProject = (data: ProjectFormData) => {
-    const newProject = {
-      id: (projects.length + 1).toString(),
-      name: data.name,
-      description: data.description || "No description",
-      status: data.status || "Not Started",
-    };
-    setProjects([...projects, newProject]);
-    setSelectedProjectId(newProject.id);
-    setShowAddProject(false);
+  // ✅ Fetch user's real projects from Supabase
+  const fetchProjects = async () => {
+    if (!userId) return;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("clerk_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching projects:", error.message);
+      toast({
+        title: "Error",
+        description: "Could not load projects.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProjects(data || []);
+    if (data && data.length > 0) {
+      setSelectedProjectId(data[0].id.toString());
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [userId]);
+
+  // ✅ Create new project and store it in Supabase
+  const handleCreateProject = async (data: ProjectFormData) => {
+    if (!userId) return;
+
+    const { error, data: created } = await supabase
+      .from("projects")
+      .insert([
+        {
+          name: data.name,
+          description: data.description || "",
+          status: data.status || "Not Started",
+          clerk_id: userId,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error adding project:", error.message);
+      toast({
+        title: "Error",
+        description: "Could not create project.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     toast({
       title: "Project Created",
       description: `${data.name} has been added.`,
     });
+
+    setProjects((prev) => [created, ...prev]);
+    setSelectedProjectId(created.id.toString());
+    setShowAddProject(false);
   };
 
   return (
@@ -109,7 +148,7 @@ export function WorkspaceHeader() {
               </SelectTrigger>
               <SelectContent>
                 {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
+                  <SelectItem key={project.id} value={project.id.toString()}>
                     {project.name}
                   </SelectItem>
                 ))}
