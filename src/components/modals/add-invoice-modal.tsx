@@ -1,37 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+} from "../ui/select";
+import { Calendar } from "../ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon, Loader2, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-
-interface AddInvoiceModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (invoiceData: InvoiceFormData) => void;
-}
+import { cn } from "../../lib/utils";
 
 interface InvoiceItem {
   description: string;
@@ -51,10 +41,33 @@ export interface InvoiceFormData {
   status: string;
 }
 
+interface Client {
+  id: number;
+  name: string;
+}
+
+interface Project {
+  id: number;
+  name: string;
+  client_id: number;
+}
+
+interface AddInvoiceModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (invoiceData: InvoiceFormData) => void;
+  clients: Client[];
+  projects: Project[];
+  initialData?: any;
+}
+
 export function AddInvoiceModal({
   open,
   onOpenChange,
   onSubmit,
+  clients,
+  projects,
+  initialData,
 }: AddInvoiceModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<InvoiceFormData>({
@@ -68,6 +81,37 @@ export function AddInvoiceModal({
     status: "draft",
   });
 
+  useEffect(() => {
+    if (initialData) {
+      const {
+        client_id,
+        project_id,
+        invoice_number,
+        issue_date,
+        due_date,
+        notes,
+        status,
+        items,
+      } = initialData;
+
+      setFormData({
+        client: client_id?.toString() || "",
+        project: project_id?.toString() || "",
+        invoiceNumber: invoice_number?.replace("INV-", "") || "",
+        issueDate: issue_date ? new Date(issue_date) : new Date(),
+        dueDate: due_date ? new Date(due_date) : undefined,
+        notes: notes || "",
+        status: status || "draft",
+        items: items?.map((item: any) => ({
+          description: item.description,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.quantity * item.rate,
+        })) || [{ description: "", quantity: 1, rate: 0, amount: 0 }],
+      });
+    }
+  }, [initialData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.client || !formData.invoiceNumber) return;
@@ -75,19 +119,24 @@ export function AddInvoiceModal({
     setIsLoading(true);
     try {
       await onSubmit(formData);
-      setFormData({
-        client: "",
-        project: "",
-        invoiceNumber: "",
-        issueDate: new Date(),
-        dueDate: undefined,
-        items: [{ description: "", quantity: 1, rate: 0, amount: 0 }],
-        notes: "",
-        status: "draft",
-      });
+
+      // Reset only if it's a new invoice
+      if (!initialData) {
+        setFormData({
+          client: "",
+          project: "",
+          invoiceNumber: "",
+          issueDate: new Date(),
+          dueDate: undefined,
+          items: [{ description: "", quantity: 1, rate: 0, amount: 0 }],
+          notes: "",
+          status: "draft",
+        });
+      }
+
       onOpenChange(false);
     } catch (error) {
-      console.error("Error creating invoice:", error);
+      console.error("Error submitting invoice:", error);
     } finally {
       setIsLoading(false);
     }
@@ -135,17 +184,20 @@ export function AddInvoiceModal({
 
   const totalAmount = formData.items.reduce(
     (sum, item) => sum + item.amount,
-    0,
+    0
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Invoice</DialogTitle>
+          <DialogTitle>
+            {initialData ? "Edit Invoice" : "Create New Invoice"}
+          </DialogTitle>
           <DialogDescription>
-            Create a new invoice for your client. Add line items and set payment
-            terms.
+            {initialData
+              ? "Update the invoice details below."
+              : "Create a new invoice for your client. Add line items and set payment terms."}
           </DialogDescription>
         </DialogHeader>
 
@@ -161,9 +213,11 @@ export function AddInvoiceModal({
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="techcorp">TechCorp Inc.</SelectItem>
-                  <SelectItem value="startupco">StartupCo</SelectItem>
-                  <SelectItem value="designstudio">DesignStudio</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id.toString()}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -178,13 +232,16 @@ export function AddInvoiceModal({
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ecommerce-redesign">
-                    E-commerce Redesign
-                  </SelectItem>
-                  <SelectItem value="mobile-app-ui">Mobile App UI</SelectItem>
-                  <SelectItem value="brand-guidelines">
-                    Brand Guidelines
-                  </SelectItem>
+                  {projects
+                    .filter((p) => p.client_id.toString() === formData.client)
+                    .map((project) => (
+                      <SelectItem
+                        key={project.id}
+                        value={project.id.toString()}
+                      >
+                        {project.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -193,15 +250,20 @@ export function AddInvoiceModal({
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="invoiceNumber">Invoice Number *</Label>
-              <Input
-                id="invoiceNumber"
-                placeholder="INV-001"
-                value={formData.invoiceNumber}
-                onChange={(e) =>
-                  handleInputChange("invoiceNumber", e.target.value)
-                }
-                required
-              />
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  INV-
+                </span>
+                <Input
+                  id="invoiceNumber"
+                  placeholder="001"
+                  value={formData.invoiceNumber}
+                  onChange={(e) =>
+                    handleInputChange("invoiceNumber", e.target.value)
+                  }
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -212,15 +274,13 @@ export function AddInvoiceModal({
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !formData.issueDate && "text-muted-foreground",
+                      !formData.issueDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.issueDate ? (
-                      format(formData.issueDate, "PPP")
-                    ) : (
-                      <span>Pick date</span>
-                    )}
+                    {formData.issueDate
+                      ? format(formData.issueDate, "PPP")
+                      : "Pick date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -242,15 +302,13 @@ export function AddInvoiceModal({
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !formData.dueDate && "text-muted-foreground",
+                      !formData.dueDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dueDate ? (
-                      format(formData.dueDate, "PPP")
-                    ) : (
-                      <span>Pick date</span>
-                    )}
+                    {formData.dueDate
+                      ? format(formData.dueDate, "PPP")
+                      : "Pick date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -352,6 +410,23 @@ export function AddInvoiceModal({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => handleInputChange("status", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
@@ -368,7 +443,7 @@ export function AddInvoiceModal({
               }
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Invoice
+              {initialData ? "Update Invoice" : "Create Invoice"}
             </Button>
           </div>
         </form>
