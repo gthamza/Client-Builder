@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   User,
+  MonitorCog,
   HelpCircle,
   ChevronDown,
 } from "lucide-react";
