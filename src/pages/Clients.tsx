@@ -204,7 +204,7 @@ export default function Clients() {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">{totalProjects}</div>
-            <div className="text-sm text-muted-foreground">Inactive</div>
+            <div className="text-sm text-muted-foreground">Total Projects</div>
           </CardContent>
         </Card>
       </div>

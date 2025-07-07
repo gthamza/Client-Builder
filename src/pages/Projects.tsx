@@ -30,13 +30,20 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch projects for logged-in user
   const fetchProjects = async () => {
     if (!userId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("projects")
-      .select("*")
+      .select(
+        `
+        *,
+        client:clients (
+          id,
+          name
+        )
+      `
+      )
       .eq("clerk_id", userId)
       .order("created_at", { ascending: false });
 
@@ -70,14 +77,19 @@ export default function Projects() {
   ) => {
     if (!userId) return;
 
+    const payload = {
+      ...projectData,
+      client_id: projectData.clientId,
+      clerk_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    delete payload.clientId;
+
     if (projectData.id) {
-      // Update
       const { error } = await supabase
         .from("projects")
-        .update({
-          ...projectData,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq("id", projectData.id)
         .eq("clerk_id", userId);
 
@@ -91,13 +103,7 @@ export default function Projects() {
         console.error("Update error:", error.message);
       }
     } else {
-      // Create
-      const { error } = await supabase.from("projects").insert({
-        ...projectData,
-        clerk_id: userId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      const { error } = await supabase.from("projects").insert(payload);
 
       if (!error) {
         toast({
@@ -117,6 +123,7 @@ export default function Projects() {
   const handleEdit = (project: any) => {
     setSelectedProject({
       ...project,
+      clientId: project.client_id,
       deadline: project.deadline ? new Date(project.deadline) : undefined,
     });
     setShowAddProject(true);
@@ -142,7 +149,6 @@ export default function Projects() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
@@ -203,8 +209,9 @@ export default function Projects() {
               </div>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-sm text-muted-foreground">
-                  {project.client || "No Client"}
+                  {project.client?.name || "No Client"}
                 </p>
+
                 <div className="flex space-x-2">
                   <Button
                     variant="outline"
@@ -230,7 +237,6 @@ export default function Projects() {
                 {project.description}
               </p>
 
-              {/* Progress */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
@@ -239,7 +245,6 @@ export default function Projects() {
                 <Progress value={project.progress} className="h-2" />
               </div>
 
-              {/* Budget & Deadline */}
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-muted-foreground">
@@ -254,7 +259,9 @@ export default function Projects() {
                     <span>Deadline</span>
                   </div>
                   <span className="font-medium">
-                    {new Date(project.deadline).toLocaleDateString("en-CA")}
+                    {project.deadline
+                      ? new Date(project.deadline).toLocaleDateString("en-CA")
+                      : "N/A"}
                   </span>
                 </div>
               </div>

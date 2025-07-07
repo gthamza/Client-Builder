@@ -26,16 +26,29 @@ import {
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "../../lib/utils";
+import { useAuth } from "@clerk/clerk-react";
+import { createBrowserClient } from "@supabase/ssr";
 
+// Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+
+// Types
 export interface ProjectFormData {
   progress: number;
   name: string;
   description: string;
-  client: string;
+  clientId: number;
   status: string;
   deadline: Date | undefined;
   budget: string;
   priority: string;
+}
+
+interface Client {
+  id: number;
+  name: string;
 }
 
 interface AddProjectModalProps {
@@ -52,10 +65,13 @@ export function AddProjectModal({
   initialData,
 }: AddProjectModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const { userId } = useAuth();
+
   const [formData, setFormData] = useState<ProjectFormData>({
     name: "",
     description: "",
-    client: "",
+    clientId: 0,
     status: "Not Started",
     deadline: undefined,
     budget: "",
@@ -64,32 +80,63 @@ export function AddProjectModal({
   });
 
   useEffect(() => {
+    if (!userId) return;
+
+    const fetchClients = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, name")
+          .eq("clerk_id", userId);
+
+        if (error) throw error;
+        setClients(data || []);
+      } catch (err) {
+        console.error("Failed to fetch clients:", err);
+      }
+    };
+
+    fetchClients();
+  }, [userId]);
+  useEffect(() => {
     if (open) {
-      setFormData(
-        initialData ?? {
+      if (initialData) {
+        setFormData({
+          name: initialData.name || "",
+          description: initialData.description || "",
+          clientId: initialData.clientId || 0,
+          status: initialData.status || "Not Started",
+          deadline: initialData.deadline
+            ? new Date(initialData.deadline)
+            : undefined,
+          budget: initialData.budget || "",
+          priority: initialData.priority || "medium",
+          progress: initialData.progress || 0,
+        });
+      } else {
+        // Reset for new project
+        setFormData({
           name: "",
           description: "",
-          client: "",
+          clientId: 0,
           status: "Not Started",
           deadline: undefined,
           budget: "",
           priority: "medium",
           progress: 0,
-        }
-      );
+        });
+      }
     }
   }, [open, initialData]);
+    
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.client) return;
+    if (!formData.name || !formData.clientId) return;
 
     setIsLoading(true);
     try {
-      await onSubmit({
-        ...formData,
-        id: initialData?.id,
-      });
+      await onSubmit({ ...formData, id: initialData?.id });
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving project:", error);
@@ -99,11 +146,44 @@ export function AddProjectModal({
   };
 
   const handleInputChange = (field: keyof ProjectFormData, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      let updated = { ...prev, [field]: value };
+
+      // Human logic between status and progress
+      if (field === "status") {
+        switch (value) {
+          case "Not Started":
+            updated.progress = 0;
+            break;
+          case "In Progress":
+            if (updated.progress === 0 || updated.progress === 100) {
+              updated.progress = 10;
+            }
+            break;
+          case "Review":
+            if (updated.progress < 80 || updated.progress === 100) {
+              updated.progress = 85;
+            }
+            break;
+          case "Completed":
+            updated.progress = 100;
+            break;
+        }
+      }
+
+      // Optional: Adjust status if user manually changes progress
+      if (field === "progress") {
+        const p = Number(value);
+        if (p === 0) updated.status = "Not Started";
+        else if (p > 0 && p < 80) updated.status = "In Progress";
+        else if (p >= 80 && p < 100) updated.status = "Review";
+        else if (p === 100) updated.status = "Completed";
+      }
+
+      return updated;
+    });
   };
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -135,13 +215,29 @@ export function AddProjectModal({
 
             <div className="space-y-2">
               <Label htmlFor="client">Client *</Label>
-              <Input
-                id="client"
-                value={formData.client}
-                onChange={(e) => handleInputChange("client", e.target.value)}
-                placeholder="E.g., TechCorp Inc."
-                required
-              />
+              <Select
+                value={formData.clientId ? String(formData.clientId) : ""}
+                onValueChange={(value) =>
+                  handleInputChange("clientId", parseInt(value))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.length > 0 ? (
+                    clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-muted-foreground text-sm">
+                      No clients found
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -278,7 +374,7 @@ export function AddProjectModal({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !formData.name || !formData.client}
+              disabled={isLoading || !formData.name || !formData.clientId}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialData?.id ? "Update Project" : "Create Project"}
