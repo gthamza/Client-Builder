@@ -33,6 +33,7 @@ const navigation = [
   { name: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
   { name: "Workspace", icon: FolderKanban, key: "workspace" },
   { name: "Add Project", icon: Plus, key: "add-project", isAction: true },
+  { name: "Team Settings", icon: Users, key: "team" },
   { name: "Tasks", icon: CheckSquare, key: "tasks" },
   { name: "Projects", icon: FolderKanban, key: "projects" },
   { name: "Clients", icon: Users, key: "clients" },

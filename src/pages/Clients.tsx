@@ -7,6 +7,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  Edit,
 } from "lucide-react";
 import {
   Card,
@@ -234,7 +235,7 @@ export default function Clients() {
                           setShowAddClient(true);
                         }}
                       >
-                        <Edit2 className="w-4 h-4 text-blue-700" />
+                        <Edit className="w-4 h-4 text-blue-500" />
                       </Button>
 
                       <Button
@@ -242,7 +243,7 @@ export default function Clients() {
                         className="h-8 w-8 bg-black border border-gray-400 hover:bg-gray-900"
                         onClick={() => handleDeleteClient(client.id)}
                       >
-                        <Trash2 className="w-4 h-4 text-red-600" />
+                        <Trash2 className="w-4 h-4 text-red-500" />
                       </Button>
                     </div>
                   </div>

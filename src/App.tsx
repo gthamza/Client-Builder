@@ -18,7 +18,7 @@ import Chat from "./pages/Chat";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
-
+import TeamSettings from "./pages/TeamSettings";
 export default function Index() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +90,8 @@ export default function Index() {
         return <Tasks />;
       case "projects":
         return <Projects />;
+      case "team":
+        return <TeamSettings />;
       case "clients":
         return <Clients />;
       case "files":

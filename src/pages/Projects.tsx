@@ -13,7 +13,7 @@ import {
   AddProjectModal,
   ProjectFormData,
 } from "../components/workspace/add-project-modal";
-import { Plus, Calendar, DollarSign, Trash2, Pencil } from "lucide-react";
+import { Plus, Calendar, DollarSign, Trash2, Pencil, Edit } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -216,15 +216,15 @@ export default function Projects() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-blue-600 p-1"
+                    className="text-blue-500 p-1"
                     onClick={() => handleEdit(project)}
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Edit className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-red-600 p-1"
+                    className="text-red-500 p-1"
                     onClick={() => handleDelete(project.id)}
                   >
                     <Trash2 className="w-4 h-4" />
