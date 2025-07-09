@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
+import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
 import { TeamSettingsHeader } from "../components/Teams/TeamSettingsHeader";
 import { TeamStatsCards } from "../components/Teams/TeamStatsCards";
@@ -26,115 +28,89 @@ interface Project {
 
 export default function TeamSettings() {
   const { toast } = useToast();
+  const { user } = useUser();
+  const userId = user?.id;
+
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    "proj-1"
+    null
   );
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
-  // Mock projects data
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "proj-1",
-      name: "E-commerce Platform",
-      status: "active",
-      memberCount: 4,
-    },
-    {
-      id: "proj-2",
-      name: "Mobile App Redesign",
-      status: "active",
-      memberCount: 3,
-    },
-    {
-      id: "proj-3",
-      name: "Website Migration",
-      status: "completed",
-      memberCount: 2,
-    },
-    {
-      id: "proj-4",
-      name: "Marketing Dashboard",
-      status: "on-hold",
-      memberCount: 1,
-    },
-  ]);
+  // Fetch projects for current user
+  const fetchProjects = async () => {
+    if (!userId) return;
 
-  // Mock team members data
-  const [allTeamMembers, setAllTeamMembers] = useState<TeamMember[]>([
-    {
-      id: "1",
-      name: "Alice Johnson",
-      email: "alice@company.com",
-      role: "admin",
-      avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Alice",
-      joinedAt: "2024-01-15",
-      status: "active",
-      projectId: "proj-1",
-    },
-    {
-      id: "2",
-      name: "Bob Smith",
-      email: "bob@company.com",
-      role: "member",
-      avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Bob",
-      joinedAt: "2024-01-20",
-      status: "active",
-      projectId: "proj-1",
-    },
-    {
-      id: "3",
-      name: "Carol White",
-      email: "carol@company.com",
-      role: "member",
-      avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Carol",
-      joinedAt: "2024-02-01",
-      status: "active",
-      projectId: "proj-1",
-    },
-    {
-      id: "4",
-      name: "David Wilson",
-      email: "david@company.com",
-      role: "viewer",
-      joinedAt: "2024-02-10",
-      status: "pending",
-      projectId: "proj-1",
-    },
-    {
-      id: "5",
-      name: "Emma Davis",
-      email: "emma@company.com",
-      role: "admin",
-      avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Emma",
-      joinedAt: "2024-01-10",
-      status: "active",
-      projectId: "proj-2",
-    },
-    {
-      id: "6",
-      name: "Frank Miller",
-      email: "frank@company.com",
-      role: "member",
-      avatar: "https://api.dicebear.com/9.x/adventurer/svg?seed=Frank",
-      joinedAt: "2024-01-25",
-      status: "active",
-      projectId: "proj-2",
-    },
-    {
-      id: "7",
-      name: "Grace Lee",
-      email: "grace@company.com",
-      role: "member",
-      joinedAt: "2024-02-05",
-      status: "pending",
-      projectId: "proj-2",
-    },
-  ]);
+    const { data, error } = await supabase
+      .from("projects")
+      .select("id, name, status")
+      .eq("clerk_id", userId);
 
-  // Filter team members by selected project
-  const teamMembers = allTeamMembers.filter(
-    (member) => member.projectId === selectedProjectId
-  );
+    if (error) {
+      toast({
+        title: "Failed to load projects",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      const enriched = await Promise.all(
+        data.map(async (proj) => {
+          const { count } = await supabase
+            .from("team_members")
+            .select("*", { count: "exact", head: true })
+            .eq("project_id", proj.id);
+          return {
+            ...proj,
+            memberCount: count ?? 0,
+          };
+        })
+      );
+
+      setProjects(enriched);
+      if (!selectedProjectId && enriched.length > 0) {
+        setSelectedProjectId(enriched[0].id);
+      }
+    }
+  };
+
+  // Fetch team members for selected project
+  const fetchTeamMembers = async (projectId: string) => {
+    const { data, error } = await supabase
+      .from("team_members")
+      .select("*")
+      .eq("project_id", projectId);
+
+    if (error) {
+      toast({
+        title: "Failed to load team members",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setTeamMembers(
+        data.map((m) => ({
+          id: m.id,
+          name: m.name || "", // if you store name separately
+          email: m.invited_email,
+          role: m.role,
+          joinedAt: m.joined_at,
+          status: m.status,
+          projectId: m.project_id,
+        }))
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [userId]);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      fetchTeamMembers(selectedProjectId);
+    }
+  }, [selectedProjectId]);
 
   const handleInviteMembers = (newMembers: TeamMember[]) => {
     if (!selectedProjectId) return;
@@ -144,9 +120,9 @@ export default function TeamSettings() {
       projectId: selectedProjectId,
     }));
 
-    setAllTeamMembers((prev) => [...prev, ...membersWithProject]);
+    setTeamMembers((prev) => [...prev, ...membersWithProject]);
 
-    // Update project member count
+    // update member count locally
     setProjects((prev) =>
       prev.map((project) =>
         project.id === selectedProjectId
@@ -159,13 +135,26 @@ export default function TeamSettings() {
     );
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    const member = allTeamMembers.find((m) => m.id === memberId);
+  const handleRemoveMember = async (memberId: string) => {
+    const member = teamMembers.find((m) => m.id === memberId);
     if (!member) return;
 
-    setAllTeamMembers((prev) => prev.filter((m) => m.id !== memberId));
+    const { error } = await supabase
+      .from("team_members")
+      .delete()
+      .eq("id", memberId);
 
-    // Update project member count
+    if (error) {
+      toast({
+        title: "Error removing member",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTeamMembers((prev) => prev.filter((m) => m.id !== memberId));
+
     setProjects((prev) =>
       prev.map((project) =>
         project.id === member.projectId
@@ -176,7 +165,7 @@ export default function TeamSettings() {
 
     toast({
       title: "Member Removed",
-      description: `${member.name} has been removed from the project`,
+      description: `${member.email} has been removed from the project`,
     });
   };
 
@@ -187,7 +176,7 @@ export default function TeamSettings() {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex flex-col h-screen">
-        {/* Team Settings Header */}
+        {/* Header */}
         <TeamSettingsHeader
           onInviteClick={() => setIsInviteModalOpen(true)}
           projects={projects}
@@ -195,14 +184,11 @@ export default function TeamSettings() {
           onProjectChange={handleProjectChange}
         />
 
-        {/* Main Content */}
+        {/* Content */}
         <div className="flex-1 overflow-hidden">
           {selectedProjectId ? (
             <div className="p-6 space-y-6">
-              {/* Team Stats */}
               <TeamStatsCards teamMembers={teamMembers} />
-
-              {/* Team Members Table */}
               <TeamMembersTable
                 teamMembers={teamMembers}
                 onRemoveMember={handleRemoveMember}
@@ -224,7 +210,7 @@ export default function TeamSettings() {
           )}
         </div>
 
-        {/* Invite Member Modal */}
+        {/* Invite Modal */}
         <InviteMemberModal
           isOpen={isInviteModalOpen}
           onClose={() => setIsInviteModalOpen(false)}
