@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
+import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -18,6 +19,8 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { Upload, Loader2 } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
+import { useEffect } from "react";
 
 interface AddFileModalProps {
   open: boolean;
@@ -101,6 +104,44 @@ export function AddFileModal({
     }
   };
 
+  const { user } = useUser();
+  const userId = user?.id;
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!userId) return;
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("projects")
+        .select(
+          `
+          id,
+          name,
+          client:clients (
+            id,
+            name
+          )
+        `
+        )
+        .eq("clerk_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching projects:", error.message);
+      } else {
+        setProjects(data || []);
+      }
+
+      setLoading(false);
+    };
+
+    fetchProjects();
+  }, [userId]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<string | undefined>();
+
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-[400px] max-h-[90vh] overflow-y-auto px-4 py-3">
@@ -202,16 +243,25 @@ export function AddFileModal({
                 onValueChange={(value) => handleInputChange("project", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select" />
+                  <SelectValue
+                    placeholder={loading ? "Loading..." : "Select a project"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ecommerce-redesign">
-                    E-commerce Redesign
-                  </SelectItem>
-                  <SelectItem value="mobile-app-ui">Mobile App UI</SelectItem>
-                  <SelectItem value="brand-guidelines">
-                    Brand Guidelines
-                  </SelectItem>
+                  {projects.length === 0 && !loading ? (
+                    <SelectItem disabled value="">
+                      No projects found
+                    </SelectItem>
+                  ) : (
+                    projects.map((project) => (
+                      <SelectItem key={project.id} value={String(project.id)}>
+                        {project.name}
+                        {project.client?.name
+                          ? ` – ${project.client.name}`
+                          : ""}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
