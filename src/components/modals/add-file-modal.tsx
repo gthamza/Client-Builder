@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,13 +20,6 @@ import {
 } from "../../components/ui/select";
 import { Upload, Loader2 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
-import { useEffect } from "react";
-
-interface AddFileModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (fileData: FileFormData) => void;
-}
 
 export interface FileFormData {
   name: string;
@@ -36,12 +29,18 @@ export interface FileFormData {
   file: File | null;
 }
 
+interface AddFileModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (fileData: FileFormData) => void;
+  
+}
+
 export function AddFileModal({
   open,
   onOpenChange,
   onSubmit,
 }: AddFileModalProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FileFormData>({
     name: "",
     description: "",
@@ -50,6 +49,49 @@ export function AddFileModal({
     file: null,
   });
   const [dragActive, setDragActive] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useUser();
+  const userId = user?.id;
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!userId) return;
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("projects")
+        .select(
+          `
+            id,
+            name,
+            client:clients (
+              id,
+              name
+            )
+          `
+        )
+        .eq("clerk_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) console.error("Error fetching projects:", error.message);
+      else setProjects(data || []);
+      setLoading(false);
+    };
+    fetchProjects();
+  }, [userId]);
+
+  const handleInputChange = (field: keyof FileFormData, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileSelect = (file: File) => {
+    setFormData((prev) => ({
+      ...prev,
+      file,
+      name: prev.name || file.name.split(".")[0],
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,21 +115,6 @@ export function AddFileModal({
     }
   };
 
-  const handleInputChange = (field: keyof FileFormData, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleFileSelect = (file: File) => {
-    setFormData((prev) => ({
-      ...prev,
-      file,
-      name: prev.name || file.name.split(".")[0],
-    }));
-  };
-
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -98,50 +125,9 @@ export function AddFileModal({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
-    if (e.dataTransfer.files?.[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files?.[0]) handleFileSelect(e.dataTransfer.files[0]);
   };
 
-  const { user } = useUser();
-  const userId = user?.id;
-  useEffect(() => {
-    const fetchProjects = async () => {
-      if (!userId) return;
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select(
-          `
-          id,
-          name,
-          client:clients (
-            id,
-            name
-          )
-        `
-        )
-        .eq("clerk_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching projects:", error.message);
-      } else {
-        setProjects(data || []);
-      }
-
-      setLoading(false);
-    };
-
-    fetchProjects();
-  }, [userId]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<string | undefined>();
-
-  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-[400px] max-h-[90vh] overflow-y-auto px-4 py-3">
@@ -153,11 +139,11 @@ export function AddFileModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* File Upload */}
+          {/* Upload Field */}
           <div className="space-y-1">
             <Label>File Upload *</Label>
             <div
-              className={`border-2 border-dashed rounded-md p-2 text-center transition-colors text-sm ${
+              className={`border-2 border-dashed rounded-md p-2 text-center ${
                 dragActive
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"
@@ -193,9 +179,8 @@ export function AddFileModal({
                     className="hidden"
                     id="file-input"
                     onChange={(e) => {
-                      if (e.target.files?.[0]) {
+                      if (e.target.files?.[0])
                         handleFileSelect(e.target.files[0]);
-                      }
                     }}
                   />
                   <Button
@@ -220,7 +205,6 @@ export function AddFileModal({
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               required
-              placeholder="e.g., UI Mockups"
             />
           </div>
 
@@ -287,7 +271,6 @@ export function AddFileModal({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
